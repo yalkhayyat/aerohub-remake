@@ -1,3 +1,3 @@
-import { Geist } from "next/font/google";
+import { Funnel_Sans } from "next/font/google";
 
-export const geist = Geist({ subsets: ["latin"] });
+export const FunnelSans = Funnel_Sans({ subsets: ["latin"] });

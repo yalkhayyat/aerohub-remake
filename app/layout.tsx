@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { geist } from "@/app/ui/fonts";
+import { FunnelSans } from "@/app/ui/fonts";
 import { ThemeProvider } from "@/components/theme-provider";
 import NavBar from "@/app/ui/navbar";
 
@@ -16,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geist.className} antialiased mx-4 lg:mx-96`}>
+      <body className={`${FunnelSans.className} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="dark">
           <NavBar />
           {children}

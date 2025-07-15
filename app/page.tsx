@@ -1,4 +1,11 @@
 import CrossfadeImage from "@/app/ui/crossfade-image";
+import ContentWheelContainer from "@/app/ui/content-wheel-container";
+import GetLiveries, { Livery } from "@/lib/get-liveries";
+import LiveryCard from "@/app/ui/livery-card";
+import { ContentWheel } from "@/app/ui/content-wheel";
+import { CarouselItem } from "@/components/ui/carousel";
+import { offsetPositive } from "recharts/types/util/ChartUtils";
+import { Car } from "lucide-react";
 
 const images = [
   "/carousel/img1.png",
@@ -8,14 +15,89 @@ const images = [
   "/carousel/img5.png",
 ];
 
-export default function Home() {
+function HeroSection() {
   return (
-    <div className="relative w-full my-6 h-[400px]">
-      <CrossfadeImage
-        images={images}
-        className="rounded-lg"
-        intervalMs={5000}
-      />
+    <div className="relative w-full h-[50vh]">
+      {/* Background Image */}
+      <CrossfadeImage images={images} className="" intervalMs={5000} />
+
+      {/* Text Holder & Background Gradient */}
+      <div className="absolute inset-0 z-10 flex items-end text-foreground bg-linear-180 from-background/0 via-background/10 to-background px-4 lg:px-48">
+        {/* Hero Text */}
+        <h1 className="pb-4">
+          {/* Title */}
+          <span className="font-bold text-5xl md:text-7xl">Aeronautica </span>
+          <span className="font-bold text-5xl md:text-7xl bg-gradient-to-b from-primary-100 to-primary-500 bg-clip-text text-transparent">
+            Liveries
+          </span>
+
+          {/* Description */}
+          <span className="block font-semibold text-foreground/70 mt-4 w-full md:w-2/3">
+            AEROHUB is the central destination for Aeronautica liveries, built
+            for the Aeronautica community.
+          </span>
+        </h1>
+      </div>
     </div>
+  );
+}
+
+const LIVERY_AMOUNT = 15;
+async function ContentSection() {
+  const featured_liveries = await GetLiveries(LIVERY_AMOUNT, "featured", 0);
+  const popular_liveries = await GetLiveries(LIVERY_AMOUNT, "most_popular", 0);
+  const latest_liveries = await GetLiveries(LIVERY_AMOUNT, "latest", 0);
+
+  function renderLiveries(liveries: Livery[]) {
+    return liveries.map((livery) => (
+      <CarouselItem key={livery.id} className="md:basis-1/2 lg:basis-1/3">
+        <LiveryCard
+          title={livery.title}
+          description={livery.description ? livery.description : ""}
+          tag={livery.vehicle_name}
+          img={livery.images[0]}
+          // @ts-ignore TODO: Update to correct username
+          username={livery.user_discord_id ? livery.user_discord_id : "Unknown"}
+          created_at={new Date(livery.created_at).toLocaleDateString()}
+        />
+      </CarouselItem>
+    ));
+  }
+
+  return (
+    <div className="my-16 px-4 lg:px-48 space-y-16">
+      <ContentWheelContainer
+        title="Featured"
+        description="This week's top picks."
+        className=""
+      >
+        <ContentWheel>{renderLiveries(featured_liveries)}</ContentWheel>
+      </ContentWheelContainer>
+
+      <ContentWheelContainer
+        title="Most Popular"
+        description="Highly rated, consistently downloaded, and loved by the community."
+        className=""
+      >
+        <ContentWheel>{renderLiveries(popular_liveries)}</ContentWheel>
+      </ContentWheelContainer>
+
+      <ContentWheelContainer
+        title="Latest"
+        description="Discover the newest additions to AEROHUB."
+        className=""
+      >
+        <ContentWheel>{renderLiveries(latest_liveries)}</ContentWheel>
+      </ContentWheelContainer>
+    </div>
+  );
+}
+
+export default async function Home() {
+  return (
+    <>
+      <HeroSection />
+      <ContentSection />
+    </>
   );
 }
