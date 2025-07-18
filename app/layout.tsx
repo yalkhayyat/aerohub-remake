@@ -6,7 +6,7 @@ import NavBar from "@/app/ui/navbar";
 import Footer from "@/app/ui/footer";
 
 export const metadata: Metadata = {
-  title: "Aerohub",
+  title: "Aeronautica Liveries",
   description: "Liveries for Aeronautica",
 };
 
