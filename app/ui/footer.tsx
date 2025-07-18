@@ -1,7 +1,7 @@
 export default function Footer() {
   return (
     <footer className="w-full border-t border-border py-6 text-sm text-muted-foreground">
-      <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="w-full flex flex-col md:flex-row items-center justify-between px-4 md:px-24 lg:px-48">
         <p>© {new Date().getFullYear()} AEROHUB. All rights reserved.</p>
 
         <p className="flex items-center gap-1">

@@ -58,6 +58,16 @@ function MobileNavbar() {
           </Link>
         </div>
 
+        {/* Center */}
+        <div className="relative flex items-center h-full w-full mx-4 max-w-96">
+          <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Looking for something?"
+            className="pl-10"
+          />
+        </div>
+
         {/* Right */}
         <div className="flex items-center h-full w-auto gap-x-4">
           <SheetTrigger asChild>
