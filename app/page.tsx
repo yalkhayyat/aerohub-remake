@@ -48,7 +48,12 @@ function HeroSection() {
       </div>
 
       {/* Background Credits */}
-      <span className="absolute left-1/2 transform -translate-x-1/2 text-right font-extralight italic text-sm text-foreground/30 w-full md:w-2/3">
+      <span className="absolute left-1/2 transform -translate-x-1/2 text-right font-extralight italic text-sm text-foreground/30 w-full md:w-2/3 hidden md:block">
+        Screenshot by @teamdgl
+      </span>
+
+      {/* Background Credits */}
+      <span className="font-extralight italic text-sm text-foreground/30 w-full md:w-2/3 md:hidden ml-4">
         Screenshot by @teamdgl
       </span>
 
