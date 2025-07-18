@@ -45,7 +45,7 @@ export default function CrossfadeImage({
             alt=""
             fill
             className={
-              "absolute top-0 left-0 w-full h-full object-cover transition-opacity duration-1000 " +
+              "absolute top-0 left-0 w-full h-full object-cover object-left transition-opacity duration-1000 " +
               (i === index ? "opacity-100" : "opacity-0")
             }
           />
