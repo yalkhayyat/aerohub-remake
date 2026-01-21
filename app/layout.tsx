@@ -4,8 +4,8 @@ import { FunnelSans } from "@/app/ui/fonts";
 import { ThemeProvider } from "@/components/theme-provider";
 import NavBar from "@/app/ui/navbar";
 import Footer from "@/app/ui/footer";
-import { ClerkProvider } from "@clerk/nextjs";
-import ConvexClientProvider from "@/components/ConvexClientProvider";
+import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 
 export const metadata: Metadata = {
   title: "Aeronautica Liveries",
@@ -18,18 +18,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${FunnelSans.className} antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="dark">
-          <ClerkProvider>
+    <ConvexAuthNextjsServerProvider>
+      <html lang="en" suppressHydrationWarning>
+        <body className={`${FunnelSans.className} antialiased`}>
+          <ThemeProvider attribute="class" defaultTheme="dark">
             <ConvexClientProvider>
               <NavBar />
               {children}
               <Footer />
             </ConvexClientProvider>
-          </ClerkProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+          </ThemeProvider>
+        </body>
+      </html>
+    </ConvexAuthNextjsServerProvider>
   );
 }
