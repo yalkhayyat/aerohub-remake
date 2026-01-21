@@ -15,11 +15,19 @@ export const authComponent = createClient<DataModel>(components.betterAuth);
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
   return betterAuth({
     baseURL: siteUrl,
+    trustedOrigins: [siteUrl, "http://localhost:3000"],
     database: authComponent.adapter(ctx),
     // Configure simple, non-verified email/password to get started
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
+    },
+    // Social OAuth providers
+    socialProviders: {
+      google: {
+        clientId: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      },
     },
     plugins: [
       // The Convex plugin is required for Convex compatibility
@@ -28,8 +36,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   });
 };
 
-// Example function for getting the current user
-// Feel free to edit, omit, etc.
+// Get the current authenticated user
 export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
