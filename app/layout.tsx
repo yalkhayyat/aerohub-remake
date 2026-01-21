@@ -4,6 +4,8 @@ import { FunnelSans } from "@/app/ui/fonts";
 import { ThemeProvider } from "@/components/theme-provider";
 import NavBar from "@/app/ui/navbar";
 import Footer from "@/app/ui/footer";
+import { ClerkProvider } from "@clerk/nextjs";
+import ConvexClientProvider from "@/components/ConvexClientProvider";
 
 export const metadata: Metadata = {
   title: "Aeronautica Liveries",
@@ -19,9 +21,13 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${FunnelSans.className} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="dark">
-          <NavBar />
-          {children}
-          <Footer />
+          <ClerkProvider>
+            <ConvexClientProvider>
+              <NavBar />
+              {children}
+              <Footer />
+            </ConvexClientProvider>
+          </ClerkProvider>
         </ThemeProvider>
       </body>
     </html>

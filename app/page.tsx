@@ -106,7 +106,7 @@ async function ContentSection() {
           sectionId="featured"
           link={SeeMoreButton()}
         >
-          <ContentWheel>{renderLiveries(featured_liveries)}</ContentWheel>
+          {/* <ContentWheel>{renderLiveries(featured_liveries)}</ContentWheel> */}
         </ContentWheelContainer>
       </div>
       <div className="w-full py-32">
@@ -116,7 +116,7 @@ async function ContentSection() {
           className="px-4 md:px-24 lg:px-48"
           link={SeeMoreButton()}
         >
-          <ContentWheel>{renderLiveries(popular_liveries)}</ContentWheel>
+          {/* <ContentWheel>{renderLiveries(popular_liveries)}</ContentWheel> */}
         </ContentWheelContainer>
       </div>
 
@@ -127,7 +127,7 @@ async function ContentSection() {
           className="px-4 md:px-24 lg:px-48"
           link={SeeMoreButton()}
         >
-          <ContentWheel>{renderLiveries(latest_liveries)}</ContentWheel>
+          {/* <ContentWheel>{renderLiveries(latest_liveries)}</ContentWheel> */}
         </ContentWheelContainer>
       </div>
     </div>
