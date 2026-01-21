@@ -5,7 +5,6 @@ import { ThemeProvider } from "@/components/theme-provider";
 import NavBar from "@/app/ui/navbar";
 import Footer from "@/app/ui/footer";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
-import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 
 export const metadata: Metadata = {
   title: "Aeronautica Liveries",
@@ -18,7 +17,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ConvexAuthNextjsServerProvider>
       <html lang="en" suppressHydrationWarning>
         <body className={`${FunnelSans.className} antialiased`}>
           <ThemeProvider attribute="class" defaultTheme="dark">
@@ -30,6 +28,5 @@ export default function RootLayout({
           </ThemeProvider>
         </body>
       </html>
-    </ConvexAuthNextjsServerProvider>
   );
 }
