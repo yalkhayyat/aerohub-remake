@@ -1,13 +1,12 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import AeroHubText from "@/public/LogoText.svg";
 import AeroHubIcon from "@/public/LogoIcon.svg";
 import { Menu, Search } from "lucide-react";
 import {
   Sheet,
-  SheetClose,
   SheetContent,
-  SheetDescription,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -15,6 +14,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { AuthButton } from "@/components/auth";
 
 function DesktopNavbar() {
   return (
@@ -41,7 +41,7 @@ function DesktopNavbar() {
       {/* Right */}
       <div className="flex items-center h-full w-auto gap-x-4">
         <Button variant={"default"}>Post</Button>
-        <Button variant={"secondary"}>Sign In</Button>
+        <AuthButton />
       </div>
     </div>
   );
@@ -82,7 +82,7 @@ function MobileNavbar() {
           <AeroHubText className="fill-foreground w-auto h-6" />
         </SheetHeader>
         <Button variant={"default"}>Post</Button>
-        <Button variant={"secondary"}>Sign In</Button>
+        <AuthButton />
         <Separator />
         <Button variant={"link"}>Liveries</Button>
         <Button variant={"link"}>About</Button>
