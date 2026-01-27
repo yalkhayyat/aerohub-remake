@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AuthCard } from "@/components/auth/auth-card";
 import { SignInWithGoogle } from "@/components/auth/SignInWithGoogle";
+import { SignInWithDiscord } from "@/components/auth/SignInWithDiscord";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,8 @@ import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +39,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
+      router.push(redirectTo);
       router.refresh();
     } catch (err) {
       setError("An error occurred. Please try again.");
@@ -61,7 +64,8 @@ export default function LoginPage() {
       }
     >
       <div className="flex flex-col gap-6 py-4">
-        <SignInWithGoogle />
+        {/* <SignInWithGoogle /> */}
+        <SignInWithDiscord />
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">

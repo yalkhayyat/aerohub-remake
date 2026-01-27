@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthCard } from "@/components/auth/auth-card";
 import { SignInWithGoogle } from "@/components/auth/SignInWithGoogle";
+import { SignInWithDiscord } from "@/components/auth/SignInWithDiscord";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,7 +64,8 @@ export default function SignupPage() {
       }
     >
       <div className="flex flex-col gap-6 py-4">
-        <SignInWithGoogle />
+        {/* <SignInWithGoogle /> */}
+        <SignInWithDiscord />
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">

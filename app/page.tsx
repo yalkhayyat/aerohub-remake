@@ -1,11 +1,11 @@
 import CrossfadeImage from "@/app/ui/crossfade-image";
-import ContentWheelContainer from "@/app/ui/content-wheel-container";
-import GetLiveries, { Livery } from "@/lib/get-liveries";
-import LiveryCard from "@/app/ui/livery-card";
-import { ContentWheel } from "@/app/ui/content-wheel";
-import { CarouselItem } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import {
+  FeaturedLiveries,
+  PopularLiveries,
+  LatestLiveries,
+} from "@/components/home/LiveryShowcase";
 
 const images = [
   // "/carousel/img1.png",
@@ -65,70 +65,18 @@ function HeroSection() {
   );
 }
 
-function SeeMoreButton() {
-  return (
-    <Button variant="link" className="ml-auto">
-      See more
-      <ArrowRight />
-    </Button>
-  );
-}
-
-const LIVERY_AMOUNT = 15;
-async function ContentSection() {
-  const featured_liveries = await GetLiveries(LIVERY_AMOUNT, "featured", 0);
-  const popular_liveries = await GetLiveries(LIVERY_AMOUNT, "most_popular", 0);
-  const latest_liveries = await GetLiveries(LIVERY_AMOUNT, "latest", 0);
-
-  function renderLiveries(liveries: Livery[]) {
-    return liveries.map((livery) => (
-      <CarouselItem key={livery.id} className="md:basis-1/2 lg:basis-1/3">
-        <LiveryCard
-          title={livery.title}
-          description={livery.description ? livery.description : ""}
-          tag={livery.vehicle_name}
-          img={livery.images[0]}
-          // @ts-ignore TODO: Update to correct username
-          username={livery.user_discord_id ? livery.user_discord_id : "Unknown"}
-          created_at={new Date(livery.created_at).toLocaleDateString()}
-        />
-      </CarouselItem>
-    ));
-  }
-
+function ContentSection() {
   return (
     <div className="">
       <div className="w-full bg-black/20 py-32">
-        <ContentWheelContainer
-          title="Featured"
-          description="This week's top picks."
-          className="px-4 md:px-24 lg:px-48"
-          sectionId="featured"
-          link={SeeMoreButton()}
-        >
-          {/* <ContentWheel>{renderLiveries(featured_liveries)}</ContentWheel> */}
-        </ContentWheelContainer>
+        <FeaturedLiveries />
       </div>
       <div className="w-full py-32">
-        <ContentWheelContainer
-          title="Most Popular"
-          description="Highly rated, consistently downloaded, and loved by the community."
-          className="px-4 md:px-24 lg:px-48"
-          link={SeeMoreButton()}
-        >
-          {/* <ContentWheel>{renderLiveries(popular_liveries)}</ContentWheel> */}
-        </ContentWheelContainer>
+        <PopularLiveries />
       </div>
 
       <div className="w-full bg-black/20 py-32">
-        <ContentWheelContainer
-          title="Latest"
-          description="Discover the newest additions to AEROHUB."
-          className="px-4 md:px-24 lg:px-48"
-          link={SeeMoreButton()}
-        >
-          {/* <ContentWheel>{renderLiveries(latest_liveries)}</ContentWheel> */}
-        </ContentWheelContainer>
+        <LatestLiveries />
       </div>
     </div>
   );

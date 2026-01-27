@@ -19,6 +19,26 @@ import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+function PostButton() {
+  const { data: session, isPending } = authClient.useSession();
+
+  if (isPending) {
+    return (
+      <Button variant="default" disabled>
+        Post
+      </Button>
+    );
+  }
+
+  const href = session ? "/posts/create" : "/login?redirect=/posts/create";
+
+  return (
+    <Button variant="default" asChild>
+      <Link href={href}>Post</Link>
+    </Button>
+  );
+}
+
 function DesktopNavbar() {
   return (
     <div className="hidden md:flex items-center justify-between fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl h-16 py-4 px-12 md:px-24 lg:px-48">
@@ -43,7 +63,7 @@ function DesktopNavbar() {
 
       {/* Right */}
       <div className="flex items-center h-full w-auto gap-x-4">
-        <Button variant={"default"}>Post</Button>
+        <PostButton />
         <UserMenu />
       </div>
     </div>
@@ -93,7 +113,7 @@ function MobileNavbar() {
           <SheetTitle />
           <AeroHubText className="fill-foreground w-auto h-6" />
         </SheetHeader>
-        <Button variant={"default"}>Post</Button>
+        <PostButton />
         {isPending ? (
           <div className="h-9 w-full rounded-md bg-muted animate-pulse" />
         ) : session?.user ? (
