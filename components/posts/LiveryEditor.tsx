@@ -133,14 +133,14 @@ export function LiveryEditor({
       </div>
 
       {/* Livery list */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {liveries.map((livery, liveryIndex) => (
           <Collapsible
             key={liveryIndex}
             open={openStates[liveryIndex] ?? true}
             onOpenChange={() => toggleLivery(liveryIndex)}
           >
-            <div className="rounded-lg border bg-card">
+            <div className="rounded-lg border border-border/50 bg-muted/10">
               {/* Livery header */}
               <CollapsibleTrigger asChild>
                 <div className="flex cursor-pointer items-center justify-between p-3 hover:bg-muted/50">
@@ -218,7 +218,7 @@ export function LiveryEditor({
                             )
                           }
                           disabled={disabled}
-                          className="flex-1 bg-slate-900 border-slate-800"
+                          className="flex-1 bg-muted/50 border-border/20 focus:bg-background focus:border-primary/50"
                         />
                         <Input
                           placeholder="ID (e.g. 13091855406)"
@@ -232,7 +232,7 @@ export function LiveryEditor({
                             )
                           }
                           disabled={disabled}
-                          className="w-48 bg-slate-900 border-slate-800"
+                          className="w-48 bg-muted/50 border-border/20 focus:bg-background focus:border-primary/50"
                         />
                         {livery.keyValues.length > 1 && !disabled && (
                           <Button

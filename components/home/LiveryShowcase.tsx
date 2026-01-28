@@ -3,29 +3,43 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { CarouselItem } from "@/components/ui/carousel";
-import LiveryCard from "@/app/ui/livery-card";
+import { LiveryCardEnhanced } from "@/components/liveries";
 import ContentWheelContainer from "@/app/ui/content-wheel-container";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { ContentWheel } from "@/app/ui/content-wheel";
+import Link from "next/link";
 
 function SeeMoreButton() {
   return (
-    <Button variant="link" className="ml-auto">
-      See more
-      <ArrowRight />
+    <Button variant="link" className="ml-auto" asChild>
+      <Link href="/liveries">
+        See more
+        <ArrowRight />
+      </Link>
     </Button>
   );
 }
 
+// Loading skeleton for carousels
+function CarouselSkeleton() {
+  return <div className="h-64 bg-slate-800/20 animate-pulse rounded-lg m-4" />;
+}
+
 export function FeaturedLiveries() {
   // For now, using popular as featured
-  const posts = useQuery(api.posts.listPopular, { limit: 15 });
+  const result = useQuery(api.posts.browseLiveries, {
+    sort: "popular",
+    limit: 10,
+  });
+  const posts = result?.posts;
 
   if (!posts) {
-    return (
-      <div className="h-64 bg-slate-800/20 animate-pulse rounded-lg m-4" />
-    );
+    return <CarouselSkeleton />;
+  }
+
+  if (posts.length === 0) {
+    return null;
   }
 
   return (
@@ -39,14 +53,21 @@ export function FeaturedLiveries() {
       <ContentWheel>
         {posts.map((post) => (
           <CarouselItem key={post._id} className="md:basis-1/2 lg:basis-1/3">
-            <LiveryCard
-              title={post.title}
-              description={post.description || ""}
-              tag={post.vehicle}
-              img={post.thumbnailUrl || ""}
-              username={"User"} // TODO: Fetch user name
-              created_at={new Date(post._creationTime).toLocaleDateString()}
-            />
+            <Link href={`/liveries/${post._id}`}>
+              <LiveryCardEnhanced
+                id={post._id}
+                title={post.title}
+                description={post.description || ""}
+                vehicle={post.vehicle}
+                vehicleType={post.vehicleType}
+                thumbnailUrl={post.thumbnailUrl || ""}
+                username="User" // TODO: Fetch actual username
+                createdAt={post.createdAt}
+                likeCount={post.likeCount}
+                favoriteCount={post.favoriteCount}
+                liveryCount={post.liveryCount}
+              />
+            </Link>
           </CarouselItem>
         ))}
       </ContentWheel>
@@ -55,12 +76,18 @@ export function FeaturedLiveries() {
 }
 
 export function PopularLiveries() {
-  const posts = useQuery(api.posts.listPopular, { limit: 15 });
+  const result = useQuery(api.posts.browseLiveries, {
+    sort: "most-liked",
+    limit: 10,
+  });
+  const posts = result?.posts;
 
   if (!posts) {
-    return (
-      <div className="h-64 bg-slate-800/20 animate-pulse rounded-lg m-4" />
-    );
+    return <CarouselSkeleton />;
+  }
+
+  if (posts.length === 0) {
+    return null;
   }
 
   return (
@@ -73,14 +100,21 @@ export function PopularLiveries() {
       <ContentWheel>
         {posts.map((post) => (
           <CarouselItem key={post._id} className="md:basis-1/2 lg:basis-1/3">
-            <LiveryCard
-              title={post.title}
-              description={post.description || ""}
-              tag={post.vehicle}
-              img={post.thumbnailUrl || ""}
-              username={"User"} // TODO: Fetch user name
-              created_at={new Date(post._creationTime).toLocaleDateString()}
-            />
+            <Link href={`/liveries/${post._id}`}>
+              <LiveryCardEnhanced
+                id={post._id}
+                title={post.title}
+                description={post.description || ""}
+                vehicle={post.vehicle}
+                vehicleType={post.vehicleType}
+                thumbnailUrl={post.thumbnailUrl || ""}
+                username="User"
+                createdAt={post.createdAt}
+                likeCount={post.likeCount}
+                favoriteCount={post.favoriteCount}
+                liveryCount={post.liveryCount}
+              />
+            </Link>
           </CarouselItem>
         ))}
       </ContentWheel>
@@ -89,13 +123,18 @@ export function PopularLiveries() {
 }
 
 export function LatestLiveries() {
-  const result = useQuery(api.posts.listPosts, { limit: 15 });
+  const result = useQuery(api.posts.browseLiveries, {
+    sort: "latest",
+    limit: 10,
+  });
   const posts = result?.posts;
 
   if (!posts) {
-    return (
-      <div className="h-64 bg-slate-800/20 animate-pulse rounded-lg m-4" />
-    );
+    return <CarouselSkeleton />;
+  }
+
+  if (posts.length === 0) {
+    return null;
   }
 
   return (
@@ -108,14 +147,21 @@ export function LatestLiveries() {
       <ContentWheel>
         {posts.map((post) => (
           <CarouselItem key={post._id} className="md:basis-1/2 lg:basis-1/3">
-            <LiveryCard
-              title={post.title}
-              description={post.description || ""}
-              tag={post.vehicle}
-              img={post.thumbnailUrl || ""}
-              username={"User"} // TODO: Fetch user name
-              created_at={new Date(post._creationTime).toLocaleDateString()}
-            />
+            <Link href={`/liveries/${post._id}`}>
+              <LiveryCardEnhanced
+                id={post._id}
+                title={post.title}
+                description={post.description || ""}
+                vehicle={post.vehicle}
+                vehicleType={post.vehicleType}
+                thumbnailUrl={post.thumbnailUrl || ""}
+                username="User"
+                createdAt={post.createdAt}
+                likeCount={post.likeCount}
+                favoriteCount={post.favoriteCount}
+                liveryCount={post.liveryCount}
+              />
+            </Link>
           </CarouselItem>
         ))}
       </ContentWheel>

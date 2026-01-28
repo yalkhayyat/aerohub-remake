@@ -30,7 +30,9 @@ function PostButton() {
     );
   }
 
-  const href = session ? "/posts/create" : "/login?redirect=/posts/create";
+  const href = session
+    ? "/liveries/create"
+    : "/login?redirect=/liveries/create";
 
   return (
     <Button variant="default" asChild>
@@ -47,19 +49,23 @@ function DesktopNavbar() {
         <Link href="/" className="h-full w-auto">
           <AeroHubText className="fill-foreground h-full w-auto py-2 pr-4" />
         </Link>
-        <Button variant={"link"}>Liveries</Button>
-        <Button variant={"link"}>About</Button>
+        <Button variant={"link"} asChild>
+          <Link href="/liveries">Liveries</Link>
+        </Button>
+        <Button variant={"link"} asChild>
+          <Link href="/about">About</Link>
+        </Button>
       </div>
 
       {/* Center */}
-      <div className="relative flex items-center h-full w-full mx-4 max-w-96">
+      {/* <div className="relative flex items-center h-full w-full mx-4 max-w-96">
         <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
           placeholder="Looking for something?"
           className="pl-10"
         />
-      </div>
+      </div> */}
 
       {/* Right */}
       <div className="flex items-center h-full w-auto gap-x-4">
@@ -91,14 +97,14 @@ function MobileNavbar() {
         </div>
 
         {/* Center */}
-        <div className="relative flex items-center h-full w-full mx-4 max-w-96">
+        {/* <div className="relative flex items-center h-full w-full mx-4 max-w-96">
           <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Looking for something?"
             className="pl-10"
           />
-        </div>
+        </div> */}
 
         {/* Right */}
         <div className="flex items-center h-full w-auto gap-x-4">
@@ -144,8 +150,12 @@ function MobileNavbar() {
           </Button>
         )}
         <Separator />
-        <Button variant={"link"}>Liveries</Button>
-        <Button variant={"link"}>About</Button>
+        <Button variant={"link"} asChild>
+          <Link href="/liveries">Liveries</Link>
+        </Button>
+        <Button variant={"link"} asChild>
+          <Link href="/about">About</Link>
+        </Button>
       </SheetContent>
     </Sheet>
   );

@@ -14,6 +14,7 @@ import type * as http from "../http.js";
 import type * as likes from "../likes.js";
 import type * as posts from "../posts.js";
 import type * as r2 from "../r2.js";
+import type * as seed from "../seed.js";
 
 import type {
   ApiFromModules,
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   likes: typeof likes;
   posts: typeof posts;
   r2: typeof r2;
+  seed: typeof seed;
 }>;
 
 /**

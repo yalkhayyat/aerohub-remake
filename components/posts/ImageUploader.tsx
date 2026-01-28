@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useDropzone } from "react-dropzone";
-import { X, Upload, ImagePlus, Loader2 } from "lucide-react";
+import { X, Upload, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -50,7 +50,7 @@ export function ImageUploader({
         })
         .map((file) => ({
           file,
-          preview: URL.createObjectURL(file),
+          preview: URL.createObjectURL(file), // Create object URL
         }));
 
       onImagesChange([...images, ...newImages]);
@@ -69,13 +69,12 @@ export function ImageUploader({
 
   const removeImage = (index: number) => {
     const newImages = [...images];
-    // Revoke the preview URL to avoid memory leaks
+    // Revoke object URL
     URL.revokeObjectURL(newImages[index].preview);
     newImages.splice(index, 1);
     onImagesChange(newImages);
   };
 
-  // Cleanup preview URLs on unmount
   React.useEffect(() => {
     return () => {
       images.forEach((image) => URL.revokeObjectURL(image.preview));
@@ -86,96 +85,98 @@ export function ImageUploader({
 
   return (
     <div className="space-y-4">
-      {/* Image preview grid */}
-      {images.length > 0 && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {images.map((image, index) => (
-            <div
-              key={index}
-              className="group relative aspect-square overflow-hidden rounded-lg border bg-muted"
-            >
-              <img
-                src={image.preview}
-                alt={`Upload ${index + 1}`}
-                className="h-full w-full object-cover"
-              />
+      {/* Grid Layout - Mixed Dropzone + Images */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4">
+        {/* Render images first */}
+        {images.map((image, index) => (
+          <div
+            key={index}
+            className={cn(
+              "group relative aspect-square overflow-hidden rounded-xl border border-border/50 bg-muted/10 backdrop-blur-sm shadow-sm transition-all hover:border-primary/50",
+              // First image is "Cover"
+              index === 0 &&
+                "col-span-2 row-span-2 border-primary/20 ring-1 ring-primary/20",
+            )}
+          >
+            <img
+              src={image.preview}
+              alt={`Upload ${index + 1}`}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
 
-              {/* Upload status overlay */}
-              {image.uploading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                  <Loader2 className="h-6 w-6 animate-spin text-white" />
-                </div>
-              )}
+            {/* Cover Badge */}
+            {index === 0 && (
+              <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-primary/90 text-primary-foreground text-xs font-medium shadow-sm backdrop-blur-md">
+                Cover Image
+              </div>
+            )}
 
-              {image.error && (
-                <div className="absolute inset-0 flex items-center justify-center bg-red-500/50">
-                  <span className="text-xs text-white">Error</span>
-                </div>
-              )}
+            {/* Upload status overlay */}
+            {image.uploading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-[1px]">
+                <Loader2 className="h-6 w-6 animate-spin text-white" />
+              </div>
+            )}
 
-              {image.uploaded && (
-                <div className="absolute bottom-1 right-1 rounded bg-green-500 px-1.5 py-0.5 text-xs text-white">
-                  ✓
-                </div>
-              )}
+            {image.error && (
+              <div className="absolute inset-0 flex items-center justify-center bg-destructive/60 backdrop-blur-[1px]">
+                <span className="text-xs text-white font-medium">Error</span>
+              </div>
+            )}
 
-              {/* Remove button */}
-              {!disabled && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="absolute right-1 top-1 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-                  onClick={() => removeImage(index)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Dropzone */}
-      {canAddMore && (
-        <div
-          {...getRootProps()}
-          className={cn(
-            "flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors",
-            isDragActive
-              ? "border-primary bg-primary/5"
-              : "border-muted-foreground/25 hover:border-primary/50",
-            disabled && "cursor-not-allowed opacity-50",
-          )}
-        >
-          <input {...getInputProps()} />
-          <div className="flex flex-col items-center gap-2 text-center">
-            {isDragActive ? (
-              <>
-                <Upload className="h-10 w-10 text-primary" />
-                <p className="text-sm font-medium text-primary">
-                  Drop images here...
-                </p>
-              </>
-            ) : (
-              <>
-                <ImagePlus className="h-10 w-10 text-muted-foreground" />
-                <p className="text-sm font-medium">
-                  Drag & drop images here, or click to select
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {images.length}/{maxImages} images •{" "}
-                  {maxSizeBytes / 1024 / 1024}MB max per image
-                </p>
-              </>
+            {/* Remove button */}
+            {!disabled && (
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                className="absolute right-2 top-2 h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100 rounded-full"
+                onClick={() => removeImage(index)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             )}
           </div>
-        </div>
-      )}
+        ))}
 
-      {/* Validation message */}
+        {/* Dropzone Tile - Always visible at the end until full */}
+        {canAddMore && (
+          <div
+            {...getRootProps()}
+            className={cn(
+              "aspect-square flex flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all cursor-pointer hover:border-primary/50 hover:bg-muted/20",
+              isDragActive
+                ? "border-primary bg-primary/5 scale-[0.98]"
+                : "border-muted-foreground/20 bg-muted/10",
+              disabled && "cursor-not-allowed opacity-50",
+              // If no images, make dropzone prominent
+              images.length === 0 &&
+                "col-span-full aspect-[21/9] sm:aspect-[21/9]",
+            )}
+          >
+            <input {...getInputProps()} />
+            <div className="flex flex-col items-center gap-2 text-center p-4">
+              {images.length === 0 ? (
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Click to upload</p>
+                  <p className="text-sm text-muted-foreground">
+                    or drag and drop screenshots
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground font-medium">
+                  Add Image
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       {images.length === 0 && (
-        <p className="text-sm text-destructive">At least 1 image is required</p>
+        <p className="text-sm text-muted-foreground text-center">
+          Upload at least one image to continue. First image is your cover.
+        </p>
       )}
     </div>
   );

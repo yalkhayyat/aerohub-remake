@@ -58,7 +58,7 @@ export function VehicleSelector({
           {value ? (
             <span className="truncate">{value}</span>
           ) : (
-            <span className="text-muted-foreground">Select a vehicle...</span>
+            <span className="text-muted-foreground">Select vehicle...</span>
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>

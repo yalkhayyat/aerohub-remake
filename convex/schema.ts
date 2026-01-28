@@ -7,15 +7,20 @@ const schema = defineSchema({
     title: v.string(),
     description: v.optional(v.string()),
     vehicle: v.string(), // Vehicle name from types/vehicle.ts
+    vehicleType: v.string(), // Vehicle type (e.g., "Jet", "Helicopter")
+    tags: v.array(v.string()), // Tags related to the post
     imageKeys: v.array(v.string()), // R2 object keys
     authorId: v.string(), // User ID from auth
     createdAt: v.number(), // Timestamp
     updatedAt: v.number(),
     likeCount: v.number(), // Denormalized for performance
     favoriteCount: v.number(), // Denormalized for performance
+    liveryCount: v.number(), // Number of liveries in this pack (denormalized)
   })
     .index("by_author", ["authorId"])
     .index("by_vehicle", ["vehicle"])
+    .index("by_vehicleType", ["vehicleType"])
+    .index("by_tags", ["tags"])
     .index("by_created", ["createdAt"])
     .index("by_likes", ["likeCount"]),
 

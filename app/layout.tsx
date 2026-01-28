@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import NavBar from "@/app/ui/navbar";
 import Footer from "@/app/ui/footer";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "Aeronautica Liveries",
@@ -17,16 +18,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-      <html lang="en" suppressHydrationWarning>
-        <body className={`${FunnelSans.className} antialiased`}>
-          <ThemeProvider attribute="class" defaultTheme="dark">
-            <ConvexClientProvider>
-              <NavBar />
-              {children}
-              <Footer />
-            </ConvexClientProvider>
-          </ThemeProvider>
-        </body>
-      </html>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${FunnelSans.className} antialiased`}>
+        <ThemeProvider attribute="class" defaultTheme="dark">
+          <ConvexClientProvider>
+            <NavBar />
+            {children}
+            <Footer />
+            <Toaster />
+          </ConvexClientProvider>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }

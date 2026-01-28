@@ -20,3 +20,13 @@ export const { generateUploadUrl, syncMetadata } = r2.clientApi({
     console.log(`File uploaded with key: ${key}`);
   },
 });
+
+import { action } from "./_generated/server";
+import { v } from "convex/values";
+
+export const getUrl = action({
+  args: { storageId: v.string() },
+  handler: async (_ctx, { storageId }) => {
+    return await r2.getUrl(storageId);
+  },
+});

@@ -50,7 +50,12 @@ export const toggleFavorite = mutation({
 export const isFavorited = query({
   args: { postId: v.id("posts") },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    let user = null;
+    try {
+      user = await authComponent.getAuthUser(ctx);
+    } catch {
+      return false;
+    }
     if (!user) {
       return false;
     }
@@ -85,7 +90,12 @@ export const getUserFavorites = query({
     // If no userId provided, use current user
     let userId = args.userId;
     if (!userId) {
-      const user = await authComponent.getAuthUser(ctx);
+      let user = null;
+      try {
+        user = await authComponent.getAuthUser(ctx);
+      } catch {
+        return [];
+      }
       if (!user) {
         return [];
       }

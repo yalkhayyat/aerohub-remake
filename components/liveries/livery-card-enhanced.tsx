@@ -1,0 +1,250 @@
+"use client";
+
+import { Badge } from "@/components/ui/badge";
+import { Heart, Bookmark, Layers, Pencil } from "lucide-react";
+import Image from "next/image";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
+import { toast } from "sonner";
+
+interface LiveryCardEnhancedProps {
+  id: string;
+  title: string;
+  description?: string;
+  vehicle: string;
+  vehicleType: string;
+  thumbnailUrl: string;
+  username: string;
+  createdAt: number;
+  likeCount: number;
+  favoriteCount: number;
+  liveryCount?: number; // Number of liveries in pack
+  onClick?: () => void;
+  onEdit?: () => void;
+}
+
+export function LiveryCardEnhanced({
+  id,
+  title,
+  description,
+  vehicle,
+  vehicleType,
+  thumbnailUrl,
+  username,
+  createdAt,
+  likeCount,
+  favoriteCount,
+  liveryCount = 1,
+  onClick,
+  onEdit,
+}: LiveryCardEnhancedProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  const isPack = liveryCount > 1;
+
+  // Mutations
+  const toggleLike = useMutation(api.likes.toggleLike);
+  const toggleFavorite = useMutation(api.favorites.toggleFavorite);
+
+  // Queries for state
+  const isLiked = useQuery(api.likes.isLiked, { postId: id as Id<"posts"> });
+  const isFavorited = useQuery(api.favorites.isFavorited, {
+    postId: id as Id<"posts">,
+  });
+
+  // Local loading state
+  const [isLiking, setIsLiking] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Handlers
+  const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (isLiking) return;
+    setIsLiking(true);
+
+    try {
+      await toggleLike({ postId: id as Id<"posts"> });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to like";
+      if (message.includes("logged in")) {
+        toast.error("Sign in required", {
+          description: "Please sign in to like liveries",
+        });
+      } else {
+        toast.error("Error", { description: message });
+      }
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
+  const handleFavorite = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (isSaving) return;
+    setIsSaving(true);
+
+    try {
+      await toggleFavorite({ postId: id as Id<"posts"> });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save";
+      if (message.includes("logged in")) {
+        toast.error("Sign in required", {
+          description: "Please sign in to save liveries",
+        });
+      } else {
+        toast.error("Error", { description: message });
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className={cn(
+        "group relative rounded-xl cursor-pointer overflow-hidden",
+        "aspect-[4/3]",
+        "shadow-lg shadow-black/20",
+      )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={onClick}
+    >
+      {/* Background Image with zoom effect */}
+      {thumbnailUrl && !imageError ? (
+        <Image
+          src={thumbnailUrl}
+          alt={title}
+          fill
+          className={cn(
+            "object-cover transition-transform duration-500 ease-out",
+            isHovered && "scale-110",
+          )}
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <div className="absolute inset-0 bg-muted flex items-center justify-center">
+          <span className="text-muted-foreground text-sm">No Image</span>
+        </div>
+      )}
+
+      {/* Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
+
+      {/* Top Left: Vehicle Type Badge + Pack Badge */}
+      <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
+        <Badge className="bg-black/70 text-white border-0 backdrop-blur-sm">
+          {vehicleType}
+        </Badge>
+        {isPack && (
+          <Badge className="bg-primary/90 text-primary-foreground border-0 backdrop-blur-sm flex items-center gap-1">
+            <Layers size={12} />
+            {liveryCount}
+          </Badge>
+        )}
+      </div>
+
+      {/* Quick Actions - top right */}
+      <div
+        className={cn(
+          "absolute top-3 right-3 flex gap-2 z-10",
+          "transition-all duration-300",
+          isHovered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2",
+        )}
+      >
+        {onEdit && (
+          <button
+            className="p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-white/20 transition-colors"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onEdit();
+            }}
+            title="Edit Post"
+          >
+            <Pencil size={16} className="text-white" />
+          </button>
+        )}
+        <button
+          className={cn(
+            "p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-white/20 transition-colors",
+            isLiked && "bg-rose-500/20",
+          )}
+          onClick={handleLike}
+          disabled={isLiking}
+          title={isLiked ? "Unlike" : "Like"}
+        >
+          <Heart
+            size={16}
+            className={cn(
+              "transition-all",
+              isLiked ? "text-rose-500 fill-rose-500" : "text-white",
+              isLiking && "opacity-50",
+            )}
+          />
+        </button>
+        <button
+          className={cn(
+            "p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-white/20 transition-colors",
+            isFavorited && "bg-amber-500/20",
+          )}
+          onClick={handleFavorite}
+          disabled={isSaving}
+          title={isFavorited ? "Remove from saves" : "Save to favorites"}
+        >
+          <Bookmark
+            size={16}
+            className={cn(
+              "transition-all",
+              isFavorited ? "text-amber-500 fill-amber-500" : "text-white",
+              isSaving && "opacity-50",
+            )}
+          />
+        </button>
+      </div>
+
+      {/* Bottom Content */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
+        <h3 className="font-semibold text-white text-lg leading-tight line-clamp-1 mb-1">
+          {title}
+        </h3>
+        <p className="text-white/70 text-sm line-clamp-1 mb-3">{vehicle}</p>
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-3 text-white/80">
+            <span className="flex items-center gap-1">
+              <Heart
+                size={14}
+                className={cn(
+                  isLiked ? "text-rose-500 fill-rose-500" : "text-rose-400",
+                )}
+              />
+              {likeCount}
+            </span>
+            <span className="flex items-center gap-1">
+              <Bookmark
+                size={14}
+                className={cn(
+                  isFavorited
+                    ? "text-amber-500 fill-amber-500"
+                    : "text-amber-400",
+                )}
+              />
+              {favoriteCount}
+            </span>
+          </div>
+          <div className="text-white/60 text-xs">
+            by <span className="text-white/90 font-medium">{username}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
