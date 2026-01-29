@@ -6,6 +6,7 @@ import NavBar from "@/app/ui/navbar";
 import Footer from "@/app/ui/footer";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "Aeronautica Liveries",
@@ -26,6 +27,7 @@ export default function RootLayout({
             {children}
             <Footer />
             <Toaster />
+            <Analytics />
           </ConvexClientProvider>
         </ThemeProvider>
       </body>
