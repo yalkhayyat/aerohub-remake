@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthCard } from "@/components/auth/auth-card";
@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { authClient } from "@/lib/auth-client";
 import { Loader2 } from "lucide-react";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
@@ -48,6 +48,95 @@ export default function LoginPage() {
   };
 
   return (
+    <div className="flex flex-col gap-6 py-4">
+      {/* <SignInWithGoogle /> */}
+      <SignInWithDiscord />
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <Separator className="w-full bg-slate-800" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase tracking-wider">
+          <span className="bg-[#0f172a] px-2 text-muted-foreground">
+            Or continue with
+          </span>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            disabled={isLoading}
+            className="bg-slate-900 border-slate-800"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+            disabled={isLoading}
+            className="bg-slate-900 border-slate-800"
+          />
+        </div>
+
+        {error && (
+          <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+            {error}
+          </div>
+        )}
+
+        <Button type="submit" className="w-full h-11" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            "Sign in"
+          )}
+        </Button>
+      </form>
+    </div>
+  );
+}
+
+function LoginFormSkeleton() {
+  return (
+    <div className="flex flex-col gap-6 py-4">
+      <div className="h-11 w-full rounded-md bg-muted animate-pulse" />
+      <div className="h-4 w-full" />
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <div className="h-4 w-12 rounded bg-muted animate-pulse" />
+          <div className="h-10 w-full rounded-md bg-muted animate-pulse" />
+        </div>
+        <div className="space-y-2">
+          <div className="h-4 w-16 rounded bg-muted animate-pulse" />
+          <div className="h-10 w-full rounded-md bg-muted animate-pulse" />
+        </div>
+        <div className="h-11 w-full rounded-md bg-muted animate-pulse" />
+      </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
     <AuthCard
       title="Welcome back"
       description="Sign in to your account"
@@ -63,70 +152,9 @@ export default function LoginPage() {
         </p>
       }
     >
-      <div className="flex flex-col gap-6 py-4">
-        {/* <SignInWithGoogle /> */}
-        <SignInWithDiscord />
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <Separator className="w-full bg-slate-800" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase tracking-wider">
-            <span className="bg-[#0f172a] px-2 text-muted-foreground">
-              Or continue with
-            </span>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              disabled={isLoading}
-              className="bg-slate-900 border-slate-800"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              disabled={isLoading}
-              className="bg-slate-900 border-slate-800"
-            />
-          </div>
-
-          {error && (
-            <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-              {error}
-            </div>
-          )}
-
-          <Button type="submit" className="w-full h-11" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              "Sign in"
-            )}
-          </Button>
-        </form>
-      </div>
+      <Suspense fallback={<LoginFormSkeleton />}>
+        <LoginForm />
+      </Suspense>
     </AuthCard>
   );
 }
