@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Heart, Bookmark, Layers, Pencil } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -68,6 +68,10 @@ export function LiveryCardEnhanced({
   const [localFavoriteCount, setLocalFavoriteCount] =
     useState<number>(initialFavoriteCount);
 
+  // Refs to track pending mutations to prevent sync-back flickering
+  const pendingLikes = useRef(0);
+  const pendingFavorites = useRef(0);
+
   // Loading states (for mutation in flight)
   const [isLiking, setIsLiking] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -75,31 +79,33 @@ export function LiveryCardEnhanced({
   // Sync local state with Server Data when it arrives/changes
   // This ensures that if another user likes the post, or on initial load, we eventually match the truth.
   useEffect(() => {
-    if (isLikedQuery !== undefined) {
+    if (isLikedQuery !== undefined && pendingLikes.current === 0) {
       setLocalIsLiked(isLikedQuery);
     }
   }, [isLikedQuery]);
 
   useEffect(() => {
-    setLocalLikeCount(initialLikeCount);
+    if (pendingLikes.current === 0) {
+      setLocalLikeCount(initialLikeCount);
+    }
   }, [initialLikeCount]);
 
   useEffect(() => {
-    if (isFavoritedQuery !== undefined) {
+    if (isFavoritedQuery !== undefined && pendingFavorites.current === 0) {
       setLocalIsFavorited(isFavoritedQuery);
     }
   }, [isFavoritedQuery]);
 
   useEffect(() => {
-    setLocalFavoriteCount(initialFavoriteCount);
+    if (pendingFavorites.current === 0) {
+      setLocalFavoriteCount(initialFavoriteCount);
+    }
   }, [initialFavoriteCount]);
 
   // Handlers
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (isLiking) return; // Prevent double-submit race conditions
 
     // 1. Optimistic Update
     const previousIsLiked = localIsLiked;
@@ -110,6 +116,8 @@ export function LiveryCardEnhanced({
     setLocalLikeCount((prev) =>
       newIsLiked ? prev + 1 : Math.max(0, prev - 1),
     );
+
+    pendingLikes.current += 1;
     setIsLiking(true);
 
     try {
@@ -118,8 +126,10 @@ export function LiveryCardEnhanced({
       // Success! Server state will eventually propagate via useQuery and props, matching our local state.
     } catch (error) {
       // 3. Revert on Error
-      setLocalIsLiked(previousIsLiked);
-      setLocalLikeCount(previousCount);
+      if (pendingLikes.current === 1) {
+        setLocalIsLiked(previousIsLiked);
+        setLocalLikeCount(previousCount);
+      }
 
       const message = error instanceof Error ? error.message : "Failed to like";
       if (message.includes("logged in")) {
@@ -130,15 +140,16 @@ export function LiveryCardEnhanced({
         toast.error("Error", { description: message });
       }
     } finally {
-      setIsLiking(false);
+      pendingLikes.current -= 1;
+      if (pendingLikes.current === 0) {
+        setIsLiking(false);
+      }
     }
   };
 
   const handleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (isSaving) return;
 
     // 1. Optimistic Update
     const previousIsFavorited = localIsFavorited;
@@ -149,6 +160,8 @@ export function LiveryCardEnhanced({
     setLocalFavoriteCount((prev) =>
       newIsFavorited ? prev + 1 : Math.max(0, prev - 1),
     );
+
+    pendingFavorites.current += 1;
     setIsSaving(true);
 
     try {
@@ -156,8 +169,10 @@ export function LiveryCardEnhanced({
       await toggleFavorite({ postId: id as Id<"posts"> });
     } catch (error) {
       // 3. Revert on Error
-      setLocalIsFavorited(previousIsFavorited);
-      setLocalFavoriteCount(previousCount);
+      if (pendingFavorites.current === 1) {
+        setLocalIsFavorited(previousIsFavorited);
+        setLocalFavoriteCount(previousCount);
+      }
 
       const message = error instanceof Error ? error.message : "Failed to save";
       if (message.includes("logged in")) {
@@ -168,7 +183,10 @@ export function LiveryCardEnhanced({
         toast.error("Error", { description: message });
       }
     } finally {
-      setIsSaving(false);
+      pendingFavorites.current -= 1;
+      if (pendingFavorites.current === 0) {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -244,7 +262,6 @@ export function LiveryCardEnhanced({
             localIsLiked && "bg-rose-500/20",
           )}
           onClick={handleLike}
-          disabled={isLiking}
           title={localIsLiked ? "Unlike" : "Like"}
         >
           <Heart
@@ -263,7 +280,6 @@ export function LiveryCardEnhanced({
             localIsFavorited && "bg-amber-500/20",
           )}
           onClick={handleFavorite}
-          disabled={isSaving}
           title={localIsFavorited ? "Remove from saves" : "Save to favorites"}
         >
           <Bookmark

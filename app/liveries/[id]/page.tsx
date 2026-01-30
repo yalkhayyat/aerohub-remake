@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft,
   Heart,
@@ -63,19 +63,63 @@ export default function LiveryDetailPage() {
   const toggleFavorite = useMutation(api.favorites.toggleFavorite);
 
   // Local optimistic state for immediate feedback
+  const [localIsLiked, setLocalIsLiked] = useState<boolean>(false);
+  const [localLikeCount, setLocalLikeCount] = useState<number>(0);
+  const [localIsFavorited, setLocalIsFavorited] = useState<boolean>(false);
+  const [localFavoriteCount, setLocalFavoriteCount] = useState<number>(0);
+
+  // Refs to track pending mutations to prevent sync-back flickering
+  const pendingLikes = useRef(0);
+  const pendingFavorites = useRef(0);
+
   const [isLiking, setIsLiking] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Sync local state with post data when it arrives, BUT only if no mutations are in flight
+  useEffect(() => {
+    if (post) {
+      if (pendingLikes.current === 0) {
+        setLocalIsLiked(post.isLiked ?? false);
+        setLocalLikeCount(post.likeCount ?? 0);
+      }
+      if (pendingFavorites.current === 0) {
+        setLocalIsFavorited(post.isFavorited ?? false);
+        setLocalFavoriteCount(post.favoriteCount ?? 0);
+      }
+    }
+  }, [post]);
 
   const relatedPosts =
     relatedResult?.posts?.filter((p) => p._id !== postId) ?? [];
 
   // Handle like toggle
   const handleLike = async () => {
-    if (isLiking || !post) return;
+    if (!post) return;
+
+    // 1. Optimistic Update
+    const previousIsLiked = localIsLiked;
+    const previousCount = localLikeCount;
+    const newIsLiked = !previousIsLiked;
+
+    setLocalIsLiked(newIsLiked);
+    setLocalLikeCount((prev) =>
+      newIsLiked ? prev + 1 : Math.max(0, prev - 1),
+    );
+
+    pendingLikes.current += 1;
     setIsLiking(true);
+
     try {
+      // 2. Perform Mutation
       await toggleLike({ postId: postId as Id<"posts"> });
     } catch (error) {
+      // 3. Revert on Error
+      // Only revert if this was the last pending request to avoid mess with rapid toggles
+      if (pendingLikes.current === 1) {
+        setLocalIsLiked(previousIsLiked);
+        setLocalLikeCount(previousCount);
+      }
+
       const message = error instanceof Error ? error.message : "Failed to like";
       if (message.includes("logged in")) {
         toast.error("Sign in required", {
@@ -85,17 +129,40 @@ export default function LiveryDetailPage() {
         toast.error("Failed to like", { description: message });
       }
     } finally {
-      setIsLiking(false);
+      pendingLikes.current -= 1;
+      if (pendingLikes.current === 0) {
+        setIsLiking(false);
+      }
     }
   };
 
   // Handle favorite toggle
   const handleFavorite = async () => {
-    if (isSaving || !post) return;
+    if (!post) return;
+
+    // 1. Optimistic Update
+    const previousIsFavorited = localIsFavorited;
+    const previousCount = localFavoriteCount;
+    const newIsFavorited = !previousIsFavorited;
+
+    setLocalIsFavorited(newIsFavorited);
+    setLocalFavoriteCount((prev) =>
+      newIsFavorited ? prev + 1 : Math.max(0, prev - 1),
+    );
+
+    pendingFavorites.current += 1;
     setIsSaving(true);
+
     try {
+      // 2. Perform Mutation
       await toggleFavorite({ postId: postId as Id<"posts"> });
     } catch (error) {
+      // 3. Revert on Error
+      if (pendingFavorites.current === 1) {
+        setLocalIsFavorited(previousIsFavorited);
+        setLocalFavoriteCount(previousCount);
+      }
+
       const message = error instanceof Error ? error.message : "Failed to save";
       if (message.includes("logged in")) {
         toast.error("Sign in required", {
@@ -105,7 +172,10 @@ export default function LiveryDetailPage() {
         toast.error("Failed to save", { description: message });
       }
     } finally {
-      setIsSaving(false);
+      pendingFavorites.current -= 1;
+      if (pendingFavorites.current === 0) {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -163,9 +233,28 @@ export default function LiveryDetailPage() {
   });
 
   return (
-    <div className="min-h-screen pb-16 pt-20">
+    <div className="relative min-h-screen pb-16 pt-20 overflow-hidden">
+      {/* Background Ambience - Cool tones matched with Create/Edit pages */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
+        <div
+          className="absolute top-0 left-0 w-[600px] h-[600px] -translate-x-1/2 -translate-y-1/2"
+          style={{
+            background:
+              "radial-gradient(circle, hsl(var(--primary) / 0.08) 0%, transparent 70%)",
+          }}
+        />
+        <div
+          className="absolute top-1/2 right-0 w-[500px] h-[500px] translate-x-1/3 -translate-y-1/2"
+          style={{
+            background:
+              "radial-gradient(circle, hsl(var(--primary) / 0.05) 0%, transparent 60%)",
+          }}
+        />
+      </div>
+
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4">
+      <div className="max-w-6xl mx-auto px-4 relative z-10">
         {/* Breadcrumb / Back Navigation */}
         <div className="mb-8 flex items-center justify-between gap-4">
           <Button
@@ -182,24 +271,12 @@ export default function LiveryDetailPage() {
               Back to Liveries
             </Link>
           </Button>
-
-          {isAuthor && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 rounded-full border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all duration-300 shadow-sm hover:shadow-md"
-              onClick={() => router.push(`/liveries/${postId}/edit`)}
-            >
-              <Pencil size={14} />
-              Edit Livery
-            </Button>
-          )}
         </div>
 
         {/* Hero Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-10 items-stretch">
           {/* Image Gallery */}
-          <div className="md:col-span-2 h-full">
+          <div className="md:col-span-3 h-full">
             <LiveryImageGallery
               imageUrls={post.imageUrls}
               title={post.title}
@@ -208,29 +285,35 @@ export default function LiveryDetailPage() {
           </div>
 
           {/* Sidebar Info Panel - Premium Glassmorphism */}
-          <div className="md:col-span-1 h-full rounded-2xl border border-border/40 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl p-6 flex flex-col shadow-lg shadow-black/5 dark:shadow-black/20">
+          <div className="md:col-span-2 h-full rounded-2xl border border-border/40 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl p-6 flex flex-col shadow-lg shadow-black/5 dark:shadow-black/20">
             {/* TOP SECTION */}
             {/* Badges */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {post.vehicleTypes?.map((type) => (
-                <Badge
-                  key={type}
-                  className="bg-primary/15 text-primary border-primary/25 font-medium shadow-sm"
-                >
-                  {type}
-                </Badge>
-              )) ||
-                (post.vehicleType && (
-                  <Badge className="bg-primary/15 text-primary border-primary/25 font-medium shadow-sm">
-                    {post.vehicleType}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-wrap gap-2">
+                {post.vehicleTypes?.map((type) => (
+                  <Badge
+                    key={type}
+                    className="bg-primary/15 text-primary border-primary/25 font-medium shadow-sm"
+                  >
+                    {type}
                   </Badge>
-                ))}
-              {/* {isPack && (
-                <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25 font-medium shadow-sm">
-                  <Layers size={12} className="mr-1.5" />
-                  {post.liveries.length} Liveries
-                </Badge>
-              )} */}
+                )) ||
+                  (post.vehicleType && (
+                    <Badge className="bg-primary/15 text-primary border-primary/25 font-medium shadow-sm">
+                      {post.vehicleType}
+                    </Badge>
+                  ))}
+              </div>
+              {isAuthor && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 rounded-xl border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all duration-300 shrink-0"
+                  onClick={() => router.push(`/liveries/${postId}/edit`)}
+                >
+                  <Pencil size={14} />
+                </Button>
+              )}
             </div>
 
             {/* Title */}
@@ -239,7 +322,7 @@ export default function LiveryDetailPage() {
             </h1>
 
             {/* Author Row */}
-            <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="flex items-center gap-3 group cursor-pointer mb-6">
               <Avatar className="h-9 w-9 ring-2 ring-border/50 ring-offset-2 ring-offset-background transition-all group-hover:ring-primary/50">
                 <AvatarImage
                   src={post.author?.image || undefined}
@@ -257,54 +340,64 @@ export default function LiveryDetailPage() {
               </div>
             </div>
 
+            {/* Vehicle Info */}
+            <div className="space-y-3 mb-6">
+              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                Compatible Aircraft
+              </p>
+              <ul className="flex flex-wrap gap-2">
+                {(post.vehicles || [post.vehicle]).map((v, i) => (
+                  <li
+                    key={i}
+                    className="text-xs font-medium text-foreground bg-muted/50 px-3 py-1.5 rounded-lg border border-border/50"
+                  >
+                    {v}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
             {/* SPACER */}
-            <div className="flex-1 min-h-8" />
+            <div className="flex-1 min-h-14" />
 
             {/* BOTTOM SECTION */}
-            <div className="pt-5 border-t border-border/40 space-y-4">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                Published {formattedDate}
-              </p>
+            <div className="">
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleLike}
-                  disabled={isLiking}
                   className={cn(
                     "flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 flex-1 justify-center font-medium",
-                    post.isLiked
+                    localIsLiked
                       ? "bg-rose-500/15 text-rose-500 shadow-sm shadow-rose-500/10"
                       : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground",
-                    isLiking && "opacity-50 cursor-not-allowed",
                   )}
                 >
                   <Heart
                     size={18}
                     className={cn(
                       "transition-transform duration-200",
-                      post.isLiked && "fill-rose-500 scale-110",
+                      localIsLiked && "fill-rose-500 scale-110",
                     )}
                   />
-                  <span className="text-sm">{post.likeCount}</span>
+                  <span className="text-sm">{localLikeCount}</span>
                 </button>
                 <button
                   onClick={handleFavorite}
-                  disabled={isSaving}
                   className={cn(
                     "flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 flex-1 justify-center font-medium",
-                    post.isFavorited
+                    localIsFavorited
                       ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 shadow-sm shadow-amber-500/10"
                       : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground",
-                    isSaving && "opacity-50 cursor-not-allowed",
                   )}
                 >
                   <Bookmark
                     size={18}
                     className={cn(
                       "transition-transform duration-200",
-                      post.isFavorited && "fill-amber-500 scale-110",
+                      localIsFavorited && "fill-amber-500 scale-110",
                     )}
                   />
-                  <span className="text-sm">{post.favoriteCount}</span>
+                  <span className="text-sm">{localFavoriteCount}</span>
                 </button>
                 <button
                   onClick={handleShare}
@@ -314,50 +407,42 @@ export default function LiveryDetailPage() {
                 </button>
               </div>
             </div>
+            <p className="pt-4 text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+              {formattedDate}
+            </p>
           </div>
         </div>
 
-        {/* About Section - Description + Vehicle */}
-        {(post.description || post.vehicles || post.vehicle) && (
-          <div className="mb-10 space-y-4">
+        {/* Content Grid - About (left, below image) + Livery Data (right, below sidebar) */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-12">
+          {/* About Section - Left column (2/3 width) */}
+          <div className="md:col-span-3 space-y-4">
+            {/* Section Header */}
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-bold text-foreground tracking-tight">
                 About
               </h2>
               <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
             </div>
-            <div className="p-5 rounded-2xl border border-border/40 bg-gradient-to-br from-card/60 to-card/30 backdrop-blur-sm shadow-sm space-y-4">
-              {/* Description Text */}
-              {post.description && (
-                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                  {post.description}
-                </p>
-              )}
 
-              {/* Vehicle Info */}
-              <div className="pt-3 border-t border-border/30">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
-                  Compatible Aircraft
-                </p>
-                <ul className="space-y-1">
-                  {(post.vehicles || [post.vehicle]).map((v, i) => (
-                    <li
-                      key={i}
-                      className="text-sm text-foreground flex items-center gap-2"
-                    >
-                      <span className="w-1 h-1 rounded-full bg-primary/60" />
-                      {v}
-                    </li>
-                  ))}
-                </ul>
+            {(post.description || post.vehicles || post.vehicle) && (
+              <div className="p-5 rounded-2xl border border-border/40 bg-gradient-to-br from-card/60 to-card/30 backdrop-blur-sm shadow-sm space-y-4">
+                {/* Description Text */}
+                {post.description && (
+                  <div>
+                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                      {post.description}
+                    </p>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </div>
-        )}
 
-        {/* Livery Data Section */}
-        <div className="mb-12">
-          <LiveriesSection liveries={post.liveries} />
+          {/* Livery Data Section - Right column (1/3 width) */}
+          <div className="md:col-span-2">
+            <LiveriesSection liveries={post.liveries} />
+          </div>
         </div>
 
         {/* Related Liveries */}
@@ -410,39 +495,84 @@ function LiveryDetailSkeleton() {
     <div className="min-h-screen pb-16 pt-20">
       <div className="max-w-6xl mx-auto px-4">
         {/* Back Button Skeleton */}
-        <Skeleton className="h-8 w-36 mb-6" />
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <Skeleton className="h-8 w-36 rounded-lg" />
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          {/* Image Skeleton */}
-          <Skeleton className="aspect-[16/10] rounded-xl" />
-
-          {/* Info Skeleton */}
-          <div className="space-y-6">
-            <div className="flex gap-2">
-              <Skeleton className="h-6 w-20" />
-              <Skeleton className="h-6 w-24" />
+        {/* Hero Section Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-10 items-stretch">
+          {/* Gallery Skeleton */}
+          <div className="md:col-span-3 space-y-4">
+            <Skeleton className="aspect-[16/10] rounded-2xl w-full" />
+            <div className="flex gap-4 overflow-hidden pt-4 -mx-2 px-2">
+              <Skeleton className="h-14 w-24 shrink-0 rounded-xl" />
+              <Skeleton className="h-14 w-24 shrink-0 rounded-xl" />
+              <Skeleton className="h-14 w-24 shrink-0 rounded-xl" />
+              <Skeleton className="h-14 w-24 shrink-0 rounded-xl opacity-50" />
             </div>
-            <Skeleton className="h-10 w-3/4" />
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-10 w-10 rounded-full" />
-              <div>
-                <Skeleton className="h-4 w-20 mb-1" />
-                <Skeleton className="h-3 w-16" />
+          </div>
+
+          {/* Sidebar Info Panel Skeleton */}
+          <div className="md:col-span-2 h-full rounded-2xl border border-border/40 bg-card/40 p-6 flex flex-col space-y-6">
+            <div className="flex justify-between items-start">
+              <div className="flex gap-2">
+                <Skeleton className="h-6 w-20 rounded-full" />
+                <Skeleton className="h-6 w-16 rounded-full" />
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-10 w-40" />
-              <Skeleton className="h-8 w-20" />
+
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-full rounded-lg" />
+              <Skeleton className="h-8 w-2/3 rounded-lg" />
             </div>
-            <Skeleton className="h-20 w-full" />
+
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-9 w-9 rounded-full" />
+              <div className="space-y-1.5">
+                <Skeleton className="h-4 w-24 rounded" />
+                <Skeleton className="h-3 w-16 rounded opacity-60" />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Skeleton className="h-3 w-32 rounded mb-2" />
+              <div className="flex flex-wrap gap-2">
+                <Skeleton className="h-7 w-28 rounded-lg" />
+                <Skeleton className="h-7 w-24 rounded-lg" />
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-[50px]" />
+
+            <div className="flex items-center gap-2 pt-4 border-t border-border/20">
+              <Skeleton className="h-10 flex-1 rounded-xl" />
+              <Skeleton className="h-10 flex-1 rounded-xl" />
+              <Skeleton className="h-10 w-10 rounded-xl" />
+            </div>
+
+            <Skeleton className="h-3 w-24 rounded mt-4" />
           </div>
         </div>
 
-        {/* Liveries Skeleton */}
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-40" />
-          <Skeleton className="h-48 w-full rounded-xl" />
-          <Skeleton className="h-48 w-full rounded-xl" />
+        {/* Bottom Content Grid Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-12">
+          {/* About Section Skeleton */}
+          <div className="md:col-span-3 space-y-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-6 w-20 rounded" />
+              <div className="flex-1 h-px bg-border/20" />
+            </div>
+            <Skeleton className="h-48 w-full rounded-2xl" />
+          </div>
+
+          {/* Livery Data Section Skeleton */}
+          <div className="md:col-span-2 space-y-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-6 w-28 rounded" />
+              <div className="flex-1 h-px bg-border/20" />
+            </div>
+            <Skeleton className="h-[400px] w-full rounded-2xl shadow-sm" />
+          </div>
         </div>
       </div>
     </div>
