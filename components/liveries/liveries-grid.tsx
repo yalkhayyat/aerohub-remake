@@ -33,6 +33,7 @@ interface LiveriesGridProps {
   hasMore?: boolean;
   onLoadMore?: () => void;
   onEdit?: (id: string) => void;
+  onDelete?: (id: string) => void;
   className?: string;
 }
 
@@ -68,6 +69,7 @@ export function LiveriesGrid({
   hasMore = false,
   onLoadMore,
   onEdit,
+  onDelete,
   className,
 }: LiveriesGridProps) {
   // Track rendered IDs to know which cards are new
@@ -182,6 +184,7 @@ export function LiveriesGrid({
                   favoriteCount={livery.favoriteCount}
                   liveryCount={livery.liveryCount}
                   onEdit={onEdit ? () => onEdit(livery.id) : undefined}
+                  onDelete={onDelete ? () => onDelete(livery.id) : undefined}
                 />
               </Link>
             </div>

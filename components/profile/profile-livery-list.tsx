@@ -11,6 +11,19 @@ import {
   SortTabs,
   LiveriesSearch,
 } from "@/components/liveries";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useMutation, useAction } from "convex/react";
+import { Id } from "@/convex/_generated/dataModel";
+import { toast } from "sonner";
 import { FILTER_VEHICLE_TYPES } from "@/lib/mock-liveries";
 
 // Sort type matching backend
@@ -55,6 +68,11 @@ export function ProfileLiveryList({
   const [cursor, setCursor] = useState<string | null>(null);
   const [allLiveries, setAllLiveries] = useState<Livery[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const deletePost = useMutation(api.posts.deletePost);
+  const deleteFiles = useAction(api.r2.deleteFiles);
 
   // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -159,6 +177,45 @@ export function ProfileLiveryList({
     [router],
   );
 
+  const handleDelete = useCallback((id: string) => {
+    setPostToDelete(id);
+  }, []);
+
+  const confirmDelete = async () => {
+    if (!postToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const result = await deletePost({ postId: postToDelete as Id<"posts"> });
+
+      // Cleanup images in R2
+      if (
+        result &&
+        result.imageKeysToDelete &&
+        result.imageKeysToDelete.length > 0
+      ) {
+        try {
+          await deleteFiles({ storageIds: result.imageKeysToDelete });
+        } catch (cleanupErr) {
+          console.error("Failed to clean up R2 images:", cleanupErr);
+          // Don't fail the toast/flow if cleanup fails
+        }
+      }
+
+      // Optimistically filter the list
+      setAllLiveries((prev) => prev.filter((l) => l.id !== postToDelete));
+      toast.success("Post deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete post:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete post",
+      );
+    } finally {
+      setIsDeleting(false);
+      setPostToDelete(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Search and Filter Controls */}
@@ -213,12 +270,41 @@ export function ProfileLiveryList({
             hasMore={hasMore}
             onLoadMore={handleLoadMore}
             onEdit={authorId ? handleEdit : undefined}
+            onDelete={authorId ? handleDelete : undefined}
             className={
               displayLiveries.length === 0 && !isLoading ? "min-h-[200px]" : ""
             }
           />
         </div>
       </div>
+
+      <AlertDialog
+        open={postToDelete !== null}
+        onOpenChange={(open) => !open && setPostToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your
+              livery post and remove all its data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete Post"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

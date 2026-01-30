@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { useUploadFile } from "@convex-dev/r2/react";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Trash2 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
@@ -20,10 +20,22 @@ import {
 import { LiveryEditor } from "@/components/posts/LiveryEditor";
 import type { Vehicle } from "@/types/vehicle";
 import type { LiveryInput } from "@/types/post";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import Link from "next/link";
 import type { Id } from "@/convex/_generated/dataModel";
 
 const MAX_TITLE_LENGTH = 80;
+const MAX_LIVERY_TITLE_LENGTH = 50;
 const MAX_DESCRIPTION_LENGTH = 5000;
 
 export default function EditPostPage() {
@@ -51,12 +63,15 @@ export default function EditPostPage() {
   const [liveries, setLiveries] = React.useState<LiveryInput[]>([]);
   const [initialImageKeys, setInitialImageKeys] = React.useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [isInitialized, setIsInitialized] = React.useState(false);
 
   // Convex hooks
   const uploadFile = useUploadFile(api.r2);
   const updatePost = useMutation(api.posts.updatePost);
+  const deletePost = useMutation(api.posts.deletePost);
+  const deleteFiles = useAction(api.r2.deleteFiles);
 
   // Initialize form with post data
   React.useEffect(() => {
@@ -95,17 +110,26 @@ export default function EditPostPage() {
     }
   }, [post, isInitialized]);
 
-  // Redirect if not authenticated or not the author
+  // Navigation and auth guards
   React.useEffect(() => {
+    if (isDeleting) return; // Let handleDelete handle navigation after deletion
+
     if (!isSessionLoading && !session) {
       router.push(`/login?redirect=/liveries/${postId}/edit`);
       return;
     }
+
+    // Redirect to liveries if invalid ID or post definitely not found
+    if (!isValidId || (post === null && !isSessionLoading)) {
+      router.push("/liveries");
+      return;
+    }
+
     // Redirect non-authors to view page (security fix)
     if (post && session && post.authorId !== session.user.id) {
       router.push(`/liveries/${postId}`);
     }
-  }, [session, isSessionLoading, router, postId, post]);
+  }, [session, isSessionLoading, router, postId, post, isValidId, isDeleting]);
 
   // Validation
   const isValid = React.useMemo(() => {
@@ -122,6 +146,8 @@ export default function EditPostPage() {
       if (hasEmptyPart) return true;
 
       // Check lengths and types
+      if ((l.title?.length ?? 0) > MAX_LIVERY_TITLE_LENGTH) return true;
+
       const hasRuleViolation = l.keyValues.some(
         (kv) =>
           kv.key.length > 20 ||
@@ -228,6 +254,37 @@ export default function EditPostPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!post || isDeleting) return;
+
+    setIsDeleting(true);
+    setError(null);
+
+    try {
+      const result = await deletePost({ postId: postId as Id<"posts"> });
+
+      // Cleanup images in R2
+      if (
+        result &&
+        result.imageKeysToDelete &&
+        result.imageKeysToDelete.length > 0
+      ) {
+        try {
+          await deleteFiles({ storageIds: result.imageKeysToDelete });
+        } catch (cleanupErr) {
+          console.error("Failed to clean up R2 images:", cleanupErr);
+          // Don't fail the whole operation if cleanup fails, the record is already gone
+        }
+      }
+
+      router.push("/liveries");
+    } catch (err) {
+      console.error("Failed to delete post:", err);
+      setError(err instanceof Error ? err.message : "Failed to delete post");
+      setIsDeleting(false);
+    }
+  };
+
   // Loading state (only for valid IDs)
   if (isSessionLoading || (isValidId && post === undefined)) {
     return (
@@ -237,9 +294,8 @@ export default function EditPostPage() {
     );
   }
 
-  // Redirect to liveries if invalid ID or post not found
-  if (!isValidId || !session || !post) {
-    router.push("/liveries");
+  // Show nothing while redirecting (handled by useEffect)
+  if (!isValidId || !session || post === null) {
     return null;
   }
 
@@ -405,28 +461,69 @@ export default function EditPostPage() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-end gap-4 pt-4 border-t border-border/50">
-                  <Button
-                    variant="ghost"
-                    onClick={() => router.push(`/liveries/${postId}`)}
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={!isValid || isSubmitting}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[140px] rounded-full h-11"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>Save Changes</>
-                    )}
-                  </Button>
+                <div className="flex items-center justify-between pt-4 border-t border-border/50">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full px-6"
+                        disabled={isSubmitting || isDeleting}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Post
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Are you absolutely sure?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently
+                          delete your livery post and remove all its data from
+                          our servers.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDelete}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {isDeleting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "Delete Post"
+                          )}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                  <div className="flex items-center gap-4">
+                    <Button
+                      variant="ghost"
+                      onClick={() => router.push(`/liveries/${postId}`)}
+                      disabled={isSubmitting || isDeleting}
+                      className="rounded-full px-6"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={!isValid || isSubmitting || isDeleting}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[140px] rounded-full px-6"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>Save Changes</>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

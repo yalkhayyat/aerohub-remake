@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { Heart, Bookmark, Layers, Pencil } from "lucide-react";
+import { Heart, Bookmark, Layers, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef } from "react";
@@ -24,6 +24,7 @@ interface LiveryCardEnhancedProps {
   liveryCount?: number; // Number of liveries in pack
   onClick?: () => void;
   onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 export function LiveryCardEnhanced({
@@ -40,6 +41,7 @@ export function LiveryCardEnhanced({
   liveryCount = 1,
   onClick,
   onEdit,
+  onDelete,
 }: LiveryCardEnhancedProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -243,6 +245,19 @@ export function LiveryCardEnhanced({
           isHovered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2",
         )}
       >
+        {onDelete && (
+          <button
+            className="p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-destructive/20 transition-colors"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDelete();
+            }}
+            title="Delete Post"
+          >
+            <Trash2 size={16} className="text-destructive" />
+          </button>
+        )}
         {onEdit && (
           <button
             className="p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-white/20 transition-colors"
@@ -256,6 +271,7 @@ export function LiveryCardEnhanced({
             <Pencil size={16} className="text-white" />
           </button>
         )}
+
         <button
           className={cn(
             "p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-white/20 transition-colors",

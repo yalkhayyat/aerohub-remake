@@ -23,6 +23,7 @@ import type { LiveryInput } from "@/types/post";
 import Link from "next/link";
 
 const MAX_TITLE_LENGTH = 80;
+const MAX_LIVERY_TITLE_LENGTH = 50;
 const MAX_DESCRIPTION_LENGTH = 5000;
 
 export default function CreatePostPage() {
@@ -36,7 +37,7 @@ export default function CreatePostPage() {
   const [vehicles, setVehicles] = React.useState<string[]>([]);
   const [images, setImages] = React.useState<ImageFile[]>([]);
   const [liveries, setLiveries] = React.useState<LiveryInput[]>([
-    { title: "Livery 1", keyValues: [{ key: "", value: "" }] },
+    { title: "", keyValues: [{ key: "", value: "" }] },
   ]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -67,6 +68,8 @@ export default function CreatePostPage() {
       if (hasEmptyPart) return true;
 
       // Check lengths and types
+      if ((l.title?.length ?? 0) > MAX_LIVERY_TITLE_LENGTH) return true;
+
       const hasRuleViolation = l.keyValues.some(
         (kv) =>
           kv.key.length > 20 ||

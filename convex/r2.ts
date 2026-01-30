@@ -30,3 +30,16 @@ export const getUrl = action({
     return await r2.getUrl(storageId);
   },
 });
+
+export const deleteFiles = action({
+  args: { storageIds: v.array(v.string()) },
+  handler: async (ctx, { storageIds }) => {
+    for (const storageId of storageIds) {
+      try {
+        await r2.deleteObject(ctx, storageId);
+      } catch (err) {
+        console.error(`Failed to delete file ${storageId}:`, err);
+      }
+    }
+  },
+});

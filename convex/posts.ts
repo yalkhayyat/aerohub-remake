@@ -13,7 +13,11 @@ const r2 = new R2(components.r2);
 const R2_PREFIX = "r2:";
 
 const MAX_TITLE_LENGTH = 80;
+const MAX_LIVERY_TITLE_LENGTH = 50;
 const MAX_DESCRIPTION_LENGTH = 5000;
+const MAX_PART_NAME_LENGTH = 20;
+const MAX_PART_VALUE_LENGTH = 20;
+const MAX_ADVANCED_LENGTH = 500;
 
 /**
  * Resolve an avatar image URL.
@@ -83,6 +87,39 @@ export const createPost = mutation({
     // Validate at least one livery
     if (args.liveries.length === 0) {
       throw new Error("At least one livery is required");
+    }
+
+    // Validate liveries
+    for (const livery of args.liveries) {
+      if (livery.title && livery.title.length > MAX_LIVERY_TITLE_LENGTH) {
+        throw new Error(
+          `Livery title must be ${MAX_LIVERY_TITLE_LENGTH} characters or less`,
+        );
+      }
+      if (
+        livery.advancedCustomization &&
+        livery.advancedCustomization.length > MAX_ADVANCED_LENGTH
+      ) {
+        throw new Error(
+          `Advanced customization must be ${MAX_ADVANCED_LENGTH} characters or less`,
+        );
+      }
+
+      for (const kv of livery.keyValues) {
+        if (kv.key.length > MAX_PART_NAME_LENGTH) {
+          throw new Error(
+            `Part name must be ${MAX_PART_NAME_LENGTH} characters or less`,
+          );
+        }
+        if (kv.value.length > MAX_PART_VALUE_LENGTH) {
+          throw new Error(
+            `Part ID must be ${MAX_PART_VALUE_LENGTH} characters or less`,
+          );
+        }
+        if (kv.value !== "" && !/^\d+$/.test(kv.value)) {
+          throw new Error("Part IDs must be numeric strings");
+        }
+      }
     }
 
     // Validate image count (1-12)
@@ -547,6 +584,39 @@ export const updatePost = mutation({
     }
 
     if (args.liveries !== undefined) {
+      // Validate liveries
+      for (const livery of args.liveries) {
+        if (livery.title && livery.title.length > MAX_LIVERY_TITLE_LENGTH) {
+          throw new Error(
+            `Livery title must be ${MAX_LIVERY_TITLE_LENGTH} characters or less`,
+          );
+        }
+        if (
+          livery.advancedCustomization &&
+          livery.advancedCustomization.length > MAX_ADVANCED_LENGTH
+        ) {
+          throw new Error(
+            `Advanced customization must be ${MAX_ADVANCED_LENGTH} characters or less`,
+          );
+        }
+
+        for (const kv of livery.keyValues) {
+          if (kv.key.length > MAX_PART_NAME_LENGTH) {
+            throw new Error(
+              `Part name must be ${MAX_PART_NAME_LENGTH} characters or less`,
+            );
+          }
+          if (kv.value.length > MAX_PART_VALUE_LENGTH) {
+            throw new Error(
+              `Part ID must be ${MAX_PART_VALUE_LENGTH} characters or less`,
+            );
+          }
+          if (kv.value !== "" && !/^\d+$/.test(kv.value)) {
+            throw new Error("Part IDs must be numeric strings");
+          }
+        }
+      }
+
       // Update liveries: delete old ones and insert new ones
       const oldLiveries = await ctx.db
         .query("liveries")

@@ -1,7 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, ChevronDown, ChevronRight, Code } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  Code,
+  Copy,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +20,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import type { LiveryInput, LiveryKeyValue } from "@/types/post";
+
+const MAX_LIVERY_TITLE_LENGTH = 50;
 
 interface LiveryEditorProps {
   liveries: LiveryInput[];
@@ -32,7 +41,7 @@ export function LiveryEditor({
     onLiveriesChange([
       ...liveries,
       {
-        title: `Livery ${liveries.length + 1}`,
+        title: "",
         keyValues: [{ key: "", value: "" }],
         advancedCustomization: undefined,
       },
@@ -56,6 +65,25 @@ export function LiveryEditor({
   const toggleLivery = (index: number) => {
     const newOpenStates = [...openStates];
     newOpenStates[index] = !newOpenStates[index];
+    setOpenStates(newOpenStates);
+  };
+
+  // Duplicate a livery
+  const duplicateLivery = (index: number) => {
+    const liveryToCopy = liveries[index];
+    const newLivery = {
+      ...liveryToCopy,
+      title: liveryToCopy.title ? `${liveryToCopy.title} (Copy)` : "",
+      // Deep copy keyValues
+      keyValues: liveryToCopy.keyValues.map((kv) => ({ ...kv })),
+    };
+
+    const newLiveries = [...liveries];
+    newLiveries.splice(index + 1, 0, newLivery);
+    onLiveriesChange(newLiveries);
+
+    const newOpenStates = [...openStates];
+    newOpenStates.splice(index + 1, 0, true);
     setOpenStates(newOpenStates);
   };
 
@@ -154,35 +182,70 @@ export function LiveryEditor({
                       className="flex-1 mr-4"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Input
-                        value={livery.title ?? `Livery ${liveryIndex + 1}`}
-                        onChange={(e) =>
-                          updateLiveryTitle(liveryIndex, e.target.value)
-                        }
-                        className="h-8 bg-transparent border-transparent hover:border-input focus:bg-background focus:border-input px-2 font-medium"
-                        placeholder={`Livery ${liveryIndex + 1}`}
-                        disabled={disabled}
-                      />
+                      <div className="relative group/title">
+                        <Input
+                          value={livery.title ?? ""}
+                          onChange={(e) =>
+                            updateLiveryTitle(liveryIndex, e.target.value)
+                          }
+                          className={cn(
+                            "h-9 bg-muted/20 border-border/50 hover:border-primary/30 focus:border-primary/50 px-3 font-medium transition-all pr-12",
+                            (livery.title?.length ?? 0) >
+                              MAX_LIVERY_TITLE_LENGTH &&
+                              "text-destructive border-destructive focus:border-destructive",
+                          )}
+                          placeholder={`Livery Name`}
+                          disabled={disabled}
+                        />
+                        <span
+                          className={cn(
+                            "absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground opacity-0 group-hover/title:opacity-100 transition-opacity pointer-events-none",
+                            (livery.title?.length ?? 0) >
+                              MAX_LIVERY_TITLE_LENGTH &&
+                              "opacity-100 text-destructive font-bold",
+                          )}
+                        >
+                          {livery.title?.length ?? 0}/{MAX_LIVERY_TITLE_LENGTH}
+                        </span>
+                      </div>
                     </div>
                     <span className="text-sm text-muted-foreground whitespace-nowrap">
                       ({livery.keyValues.length} part
                       {livery.keyValues.length !== 1 ? "s" : ""})
                     </span>
                   </div>
-                  {liveries.length > 1 && !disabled && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive shrink-0 ml-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeLivery(liveryIndex);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-1 ml-2">
+                    {!disabled && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-primary shrink-0"
+                        title="Duplicate livery"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          duplicateLivery(liveryIndex);
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {liveries.length > 1 && !disabled && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                        title="Remove livery"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeLivery(liveryIndex);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CollapsibleTrigger>
 
@@ -372,6 +435,14 @@ export function LiveryEditor({
         {liveries.some((l) => (l.advancedCustomization?.length ?? 0) > 500) && (
           <p className="text-sm text-destructive font-medium">
             Advanced customization is too long
+          </p>
+        )}
+        {liveries.some(
+          (l) => (l.title?.length ?? 0) > MAX_LIVERY_TITLE_LENGTH,
+        ) && (
+          <p className="text-sm text-destructive font-medium">
+            One or more livery titles are too long (max{" "}
+            {MAX_LIVERY_TITLE_LENGTH} characters)
           </p>
         )}
       </div>
