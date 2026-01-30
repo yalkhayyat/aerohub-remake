@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Heart, Bookmark, Layers, Pencil } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -35,8 +35,8 @@ export function LiveryCardEnhanced({
   thumbnailUrl,
   username,
   createdAt,
-  likeCount,
-  favoriteCount,
+  likeCount: initialLikeCount,
+  favoriteCount: initialFavoriteCount,
   liveryCount = 1,
   onClick,
   onEdit,
@@ -51,26 +51,76 @@ export function LiveryCardEnhanced({
   const toggleFavorite = useMutation(api.favorites.toggleFavorite);
 
   // Queries for state
-  const isLiked = useQuery(api.likes.isLiked, { postId: id as Id<"posts"> });
-  const isFavorited = useQuery(api.favorites.isFavorited, {
+  const isLikedQuery = useQuery(api.likes.isLiked, {
+    postId: id as Id<"posts">,
+  });
+  const isFavoritedQuery = useQuery(api.favorites.isFavorited, {
     postId: id as Id<"posts">,
   });
 
-  // Local loading state
+  // Local Optimistic State
+  // We initialize with the passed props/queries (defaulting to false/0 if undefined)
+  const [localIsLiked, setLocalIsLiked] = useState<boolean>(false);
+  const [localLikeCount, setLocalLikeCount] =
+    useState<number>(initialLikeCount);
+
+  const [localIsFavorited, setLocalIsFavorited] = useState<boolean>(false);
+  const [localFavoriteCount, setLocalFavoriteCount] =
+    useState<number>(initialFavoriteCount);
+
+  // Loading states (for mutation in flight)
   const [isLiking, setIsLiking] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Sync local state with Server Data when it arrives/changes
+  // This ensures that if another user likes the post, or on initial load, we eventually match the truth.
+  useEffect(() => {
+    if (isLikedQuery !== undefined) {
+      setLocalIsLiked(isLikedQuery);
+    }
+  }, [isLikedQuery]);
+
+  useEffect(() => {
+    setLocalLikeCount(initialLikeCount);
+  }, [initialLikeCount]);
+
+  useEffect(() => {
+    if (isFavoritedQuery !== undefined) {
+      setLocalIsFavorited(isFavoritedQuery);
+    }
+  }, [isFavoritedQuery]);
+
+  useEffect(() => {
+    setLocalFavoriteCount(initialFavoriteCount);
+  }, [initialFavoriteCount]);
 
   // Handlers
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (isLiking) return;
+    if (isLiking) return; // Prevent double-submit race conditions
+
+    // 1. Optimistic Update
+    const previousIsLiked = localIsLiked;
+    const previousCount = localLikeCount;
+    const newIsLiked = !previousIsLiked;
+
+    setLocalIsLiked(newIsLiked);
+    setLocalLikeCount((prev) =>
+      newIsLiked ? prev + 1 : Math.max(0, prev - 1),
+    );
     setIsLiking(true);
 
     try {
+      // 2. Perform Mutation
       await toggleLike({ postId: id as Id<"posts"> });
+      // Success! Server state will eventually propagate via useQuery and props, matching our local state.
     } catch (error) {
+      // 3. Revert on Error
+      setLocalIsLiked(previousIsLiked);
+      setLocalLikeCount(previousCount);
+
       const message = error instanceof Error ? error.message : "Failed to like";
       if (message.includes("logged in")) {
         toast.error("Sign in required", {
@@ -89,11 +139,26 @@ export function LiveryCardEnhanced({
     e.stopPropagation();
 
     if (isSaving) return;
+
+    // 1. Optimistic Update
+    const previousIsFavorited = localIsFavorited;
+    const previousCount = localFavoriteCount;
+    const newIsFavorited = !previousIsFavorited;
+
+    setLocalIsFavorited(newIsFavorited);
+    setLocalFavoriteCount((prev) =>
+      newIsFavorited ? prev + 1 : Math.max(0, prev - 1),
+    );
     setIsSaving(true);
 
     try {
+      // 2. Perform Mutation
       await toggleFavorite({ postId: id as Id<"posts"> });
     } catch (error) {
+      // 3. Revert on Error
+      setLocalIsFavorited(previousIsFavorited);
+      setLocalFavoriteCount(previousCount);
+
       const message = error instanceof Error ? error.message : "Failed to save";
       if (message.includes("logged in")) {
         toast.error("Sign in required", {
@@ -176,36 +241,36 @@ export function LiveryCardEnhanced({
         <button
           className={cn(
             "p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-white/20 transition-colors",
-            isLiked && "bg-rose-500/20",
+            localIsLiked && "bg-rose-500/20",
           )}
           onClick={handleLike}
           disabled={isLiking}
-          title={isLiked ? "Unlike" : "Like"}
+          title={localIsLiked ? "Unlike" : "Like"}
         >
           <Heart
             size={16}
             className={cn(
               "transition-all",
-              isLiked ? "text-rose-500 fill-rose-500" : "text-white",
-              isLiking && "opacity-50",
+              localIsLiked ? "text-rose-500 fill-rose-500" : "text-white",
+              // Remove opacity reduction on isLiking to maintain "solid" feel during optimistic update
+              // but keep button disabled to prevent race conditions
             )}
           />
         </button>
         <button
           className={cn(
             "p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-white/20 transition-colors",
-            isFavorited && "bg-amber-500/20",
+            localIsFavorited && "bg-amber-500/20",
           )}
           onClick={handleFavorite}
           disabled={isSaving}
-          title={isFavorited ? "Remove from saves" : "Save to favorites"}
+          title={localIsFavorited ? "Remove from saves" : "Save to favorites"}
         >
           <Bookmark
             size={16}
             className={cn(
               "transition-all",
-              isFavorited ? "text-amber-500 fill-amber-500" : "text-white",
-              isSaving && "opacity-50",
+              localIsFavorited ? "text-amber-500 fill-amber-500" : "text-white",
             )}
           />
         </button>
@@ -223,21 +288,23 @@ export function LiveryCardEnhanced({
               <Heart
                 size={14}
                 className={cn(
-                  isLiked ? "text-rose-500 fill-rose-500" : "text-rose-400",
+                  localIsLiked
+                    ? "text-rose-500 fill-rose-500"
+                    : "text-rose-400",
                 )}
               />
-              {likeCount}
+              {localLikeCount}
             </span>
             <span className="flex items-center gap-1">
               <Bookmark
                 size={14}
                 className={cn(
-                  isFavorited
+                  localIsFavorited
                     ? "text-amber-500 fill-amber-500"
                     : "text-amber-400",
                 )}
               />
-              {favoriteCount}
+              {localFavoriteCount}
             </span>
           </div>
           <div className="text-white/60 text-xs">
