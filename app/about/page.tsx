@@ -102,7 +102,7 @@ export default function AboutPage() {
       <section className="py-24 px-4 relative z-10">
         <div className="max-w-3xl mx-auto space-y-12">
           <div className="text-center space-y-4">
-            <h2 className="text-3xl font-bold">Frequency Asked Questions</h2>
+            <h2 className="text-3xl font-bold">Frequently Asked Questions</h2>
           </div>
 
           <Accordion type="single" collapsible className="w-full space-y-4">
@@ -114,7 +114,7 @@ export default function AboutPage() {
             <FAQItem
               value="games"
               question="What features does AEROHUB offer?"
-              answer="AEROHUB is currently focused on providing a seamless experience for sharing and browsing liveries. Future plans include trade listings, in-game integrations, and more!"
+              answer="AEROHUB is currently focused on providing a seamless experience for sharing and browsing liveries. Future plans may include trade listings, in-game integrations, and more!"
             />
             <FAQItem
               value="upload"
@@ -131,7 +131,7 @@ export default function AboutPage() {
             <FAQItem
               value="founder"
               question="Who is responsible for the AEROHUB platform?"
-              answer="ItsSkelly is the lead developer of AEROHUB. He is also the founder of NOVUS, a Roblox Flight Simulator. AEROHUB is also officially backed by the Aeronautica Team."
+              answer="ItsSkelly is the lead developer of AEROHUB. He is also the founder of NOVUS, a reputable Roblox Flight Simulator. Additionally, AEROHUB is developed and maintained in partnership with the Aeronautica Team."
             />
             <FAQItem
               value="discord"

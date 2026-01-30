@@ -92,8 +92,23 @@ export function LiveriesGrid({
     return !renderedIds.has(id);
   };
 
+  // Delayed skeleton state
+  const [showSkeleton, setShowSkeleton] = useState(false);
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (isLoading && liveries.length === 0) {
+      timeout = setTimeout(() => {
+        setShowSkeleton(true);
+      }, 200); // 200ms delay to prevent flicker
+    } else {
+      setShowSkeleton(false);
+    }
+    return () => clearTimeout(timeout);
+  }, [isLoading, liveries.length]);
+
   // Show skeletons while loading initial data
-  if (isLoading && liveries.length === 0) {
+  if (showSkeleton && isLoading && liveries.length === 0) {
     return (
       <div
         className={cn(
