@@ -68,9 +68,16 @@ export function VehicleSelector({
               {value.map((v) => (
                 <span
                   key={v}
-                  className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded-md text-xs truncate max-w-[200px]"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelect(v);
+                  }}
+                  className="group flex items-center gap-1 bg-secondary hover:bg-destructive hover:text-destructive-foreground transition-colors text-secondary-foreground px-2 py-0.5 rounded-md text-xs truncate max-w-[200px] cursor-pointer"
                 >
                   {v}
+                  <span className="opacity-50 group-hover:opacity-100 ml-0.5">
+                    ×
+                  </span>
                 </span>
               ))}
             </div>

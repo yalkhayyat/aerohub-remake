@@ -33,7 +33,7 @@ export function ImageUploader({
   maxSizeBytes = DEFAULT_MAX_SIZE_BYTES,
   disabled = false,
 }: ImageUploaderProps) {
-  const onDrop = React.useCallback(
+  const handleFiles = React.useCallback(
     (acceptedFiles: File[]) => {
       const remainingSlots = maxImages - images.length;
       const filesToAdd = acceptedFiles.slice(0, remainingSlots);
@@ -50,13 +50,47 @@ export function ImageUploader({
         })
         .map((file) => ({
           file,
-          preview: URL.createObjectURL(file), // Create object URL
+          preview: URL.createObjectURL(file),
         }));
 
-      onImagesChange([...images, ...newImages]);
+      if (newImages.length > 0) {
+        onImagesChange([...images, ...newImages]);
+      }
     },
     [images, maxImages, maxSizeBytes, onImagesChange],
   );
+
+  const onDrop = React.useCallback(
+    (acceptedFiles: File[]) => {
+      handleFiles(acceptedFiles);
+    },
+    [handleFiles],
+  );
+
+  // Handle paste events
+  React.useEffect(() => {
+    if (disabled || images.length >= maxImages) return;
+
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const pastedFiles: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+          const file = items[i].getAsFile();
+          if (file) pastedFiles.push(file);
+        }
+      }
+
+      if (pastedFiles.length > 0) {
+        handleFiles(pastedFiles);
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [disabled, images.length, maxImages, handleFiles]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -69,34 +103,32 @@ export function ImageUploader({
 
   const removeImage = (index: number) => {
     const newImages = [...images];
-    // Revoke object URL
-    URL.revokeObjectURL(newImages[index].preview);
     newImages.splice(index, 1);
     onImagesChange(newImages);
   };
 
-  // Track previous URLs to properly revoke them when images change (memory leak fix)
+  // Memory management for object URLs
   const previousUrlsRef = React.useRef<Set<string>>(new Set());
 
   React.useEffect(() => {
-    // Get current preview URLs
     const currentUrls = new Set(images.map((img) => img.preview));
-
-    // Revoke URLs that are no longer in use
     previousUrlsRef.current.forEach((url) => {
-      if (!currentUrls.has(url)) {
+      if (!currentUrls.has(url) && url.startsWith("blob:")) {
         URL.revokeObjectURL(url);
       }
     });
-
-    // Update the ref with current URLs
     previousUrlsRef.current = currentUrls;
-
-    // Cleanup on unmount
-    return () => {
-      currentUrls.forEach((url) => URL.revokeObjectURL(url));
-    };
   }, [images]);
+
+  React.useEffect(() => {
+    return () => {
+      previousUrlsRef.current.forEach((url) => {
+        if (url.startsWith("blob:")) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, []);
 
   const canAddMore = images.length < maxImages;
 
@@ -177,7 +209,7 @@ export function ImageUploader({
                 <div className="space-y-1">
                   <p className="font-medium text-foreground">Click to upload</p>
                   <p className="text-sm text-muted-foreground">
-                    or drag and drop screenshots
+                    drag and drop, or <b>paste</b> screenshots
                   </p>
                 </div>
               ) : (

@@ -12,6 +12,9 @@ const r2 = new R2(components.r2);
 // R2 key prefix for avatar images
 const R2_PREFIX = "r2:";
 
+const MAX_TITLE_LENGTH = 80;
+const MAX_DESCRIPTION_LENGTH = 5000;
+
 /**
  * Resolve an avatar image URL.
  * If the image is an R2 key (prefixed with "r2:"), generates a signed URL.
@@ -68,11 +71,13 @@ export const createPost = mutation({
     }
 
     // Input validation (security fix)
-    if (args.title.length > 200) {
-      throw new Error("Title must be 200 characters or less");
+    if (args.title.length > MAX_TITLE_LENGTH) {
+      throw new Error(`Title must be ${MAX_TITLE_LENGTH} characters or less`);
     }
-    if (args.description && args.description.length > 5000) {
-      throw new Error("Description must be 5000 characters or less");
+    if (args.description && args.description.length > MAX_DESCRIPTION_LENGTH) {
+      throw new Error(
+        `Description must be ${MAX_DESCRIPTION_LENGTH} characters or less`,
+      );
     }
 
     // Validate at least one livery
@@ -502,11 +507,16 @@ export const updatePost = mutation({
     }
 
     // Input validation (security fix)
-    if (args.title !== undefined && args.title.length > 200) {
-      throw new Error("Title must be 200 characters or less");
+    if (args.title !== undefined && args.title.length > MAX_TITLE_LENGTH) {
+      throw new Error(`Title must be ${MAX_TITLE_LENGTH} characters or less`);
     }
-    if (args.description !== undefined && args.description.length > 5000) {
-      throw new Error("Description must be 5000 characters or less");
+    if (
+      args.description !== undefined &&
+      args.description.length > MAX_DESCRIPTION_LENGTH
+    ) {
+      throw new Error(
+        `Description must be ${MAX_DESCRIPTION_LENGTH} characters or less`,
+      );
     }
 
     const updates: Partial<Doc<"posts">> = {

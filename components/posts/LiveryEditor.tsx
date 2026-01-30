@@ -204,49 +204,90 @@ export function LiveryEditor({
                       </Button>
                     </div>
 
-                    {livery.keyValues.map((kv, kvIndex) => (
-                      <div key={kvIndex} className="flex items-center gap-2">
-                        <Input
-                          placeholder="Part name (e.g. Body)"
-                          value={kv.key}
-                          onChange={(e) =>
-                            updateKeyValue(
-                              liveryIndex,
-                              kvIndex,
-                              "key",
-                              e.target.value,
-                            )
-                          }
-                          disabled={disabled}
-                          className="flex-1 bg-muted/50 border-border/20 focus:bg-background focus:border-primary/50"
-                        />
-                        <Input
-                          placeholder="ID (e.g. 13091855406)"
-                          value={kv.value}
-                          onChange={(e) =>
-                            updateKeyValue(
-                              liveryIndex,
-                              kvIndex,
-                              "value",
-                              e.target.value,
-                            )
-                          }
-                          disabled={disabled}
-                          className="w-48 bg-muted/50 border-border/20 focus:bg-background focus:border-primary/50"
-                        />
-                        {livery.keyValues.length > 1 && !disabled && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 shrink-0"
-                            onClick={() => removeKeyValue(liveryIndex, kvIndex)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
+                    {livery.keyValues.map((kv, kvIndex) => {
+                      const isKeyError = kv.key.length > 20;
+                      const isValueError =
+                        kv.value.length > 20 ||
+                        (kv.value !== "" && !/^\d+$/.test(kv.value));
+
+                      return (
+                        <div key={kvIndex} className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 space-y-1">
+                              <Input
+                                placeholder="Part name (e.g. Body)"
+                                value={kv.key}
+                                onChange={(e) =>
+                                  updateKeyValue(
+                                    liveryIndex,
+                                    kvIndex,
+                                    "key",
+                                    e.target.value,
+                                  )
+                                }
+                                disabled={disabled}
+                                className={cn(
+                                  "bg-muted/50 border-border/20 focus:bg-background focus:border-primary/50",
+                                  isKeyError &&
+                                    "border-destructive focus:border-destructive",
+                                )}
+                              />
+                            </div>
+                            <div className="w-48 space-y-1">
+                              <Input
+                                placeholder="ID (e.g. 13091855406)"
+                                value={kv.value}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  // Only allow numbers if not empty
+                                  if (val === "" || /^\d+$/.test(val)) {
+                                    updateKeyValue(
+                                      liveryIndex,
+                                      kvIndex,
+                                      "value",
+                                      val,
+                                    );
+                                  }
+                                }}
+                                disabled={disabled}
+                                className={cn(
+                                  "bg-muted/50 border-border/20 focus:bg-background focus:border-primary/50",
+                                  isValueError &&
+                                    "border-destructive focus:border-destructive",
+                                )}
+                              />
+                            </div>
+                            {livery.keyValues.length > 1 && !disabled && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0"
+                                onClick={() =>
+                                  removeKeyValue(liveryIndex, kvIndex)
+                                }
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                          {(isKeyError || isValueError) && (
+                            <div className="flex gap-2 px-1">
+                              {isKeyError && (
+                                <p className="text-[10px] text-destructive flex-1">
+                                  Name max 20 characters
+                                </p>
+                              )}
+                              {isValueError && (
+                                <p className="text-[10px] text-destructive w-48">
+                                  IDs must be numbers (max 20)
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Advanced customization */}
@@ -263,19 +304,42 @@ export function LiveryEditor({
                       </Button>
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pt-2">
-                      <Textarea
-                        placeholder='{"customField": "value"}'
-                        value={livery.advancedCustomization ?? ""}
-                        onChange={(e) =>
-                          updateAdvanced(liveryIndex, e.target.value)
-                        }
-                        disabled={disabled}
-                        className="font-mono text-sm"
-                        rows={4}
-                      />
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Optional JSON for additional customization data
-                      </p>
+                      <div className="space-y-1">
+                        <Textarea
+                          placeholder='{"customField": "value"}'
+                          value={livery.advancedCustomization ?? ""}
+                          onChange={(e) =>
+                            updateAdvanced(liveryIndex, e.target.value)
+                          }
+                          disabled={disabled}
+                          className={cn(
+                            "font-mono text-sm",
+                            (livery.advancedCustomization?.length ?? 0) > 500 &&
+                              "border-destructive focus:border-destructive",
+                          )}
+                          rows={4}
+                        />
+                        {(livery.advancedCustomization?.length ?? 0) > 500 && (
+                          <p className="text-[10px] text-destructive">
+                            Advanced customization must be 500 characters or
+                            less (currently{" "}
+                            {livery.advancedCustomization?.length})
+                          </p>
+                        )}
+                        <p className="mt-1 text-xs text-muted-foreground flex justify-between">
+                          <span>
+                            Optional JSON for additional customization data
+                          </span>
+                          <span
+                            className={cn(
+                              (livery.advancedCustomization?.length ?? 0) >
+                                500 && "text-destructive font-bold",
+                            )}
+                          >
+                            {livery.advancedCustomization?.length ?? 0}/500
+                          </span>
+                        </p>
+                      </div>
                     </CollapsibleContent>
                   </Collapsible>
                 </div>
@@ -286,14 +350,31 @@ export function LiveryEditor({
       </div>
 
       {/* Validation message */}
-      {liveries.length === 0 && (
-        <p className="text-sm text-destructive">
-          At least 1 livery is required
-        </p>
-      )}
-      {liveries.some((l) => l.keyValues.some((kv) => !kv.key.trim())) && (
-        <p className="text-sm text-amber-500">Some parts are missing names</p>
-      )}
+      <div className="space-y-1">
+        {liveries.length === 0 && (
+          <p className="text-sm text-destructive font-medium">
+            At least 1 livery is required
+          </p>
+        )}
+        {liveries.some((l) =>
+          l.keyValues.some(
+            (kv) =>
+              !kv.key.trim() ||
+              kv.key.length > 20 ||
+              kv.value.length > 20 ||
+              (kv.value !== "" && !/^\d+$/.test(kv.value)),
+          ),
+        ) && (
+          <p className="text-sm text-destructive font-medium">
+            Please fix errors in your livery parts (names/IDs)
+          </p>
+        )}
+        {liveries.some((l) => (l.advancedCustomization?.length ?? 0) > 500) && (
+          <p className="text-sm text-destructive font-medium">
+            Advanced customization is too long
+          </p>
+        )}
+      </div>
     </div>
   );
 }

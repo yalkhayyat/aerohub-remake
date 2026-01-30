@@ -682,11 +682,11 @@ export const VEHICLE_DATA = {
   "Skyship 600": "Airship",
   "SSSR-V6 Osoaviakhim": "Airship",
   "Zeppelin NT": "Airship",
-  "R38": "Airship",
+  R38: "Airship",
   "Hot-air Balloon": "Airship",
   "Zeppelin L-31": "Airship",
   "LZ-7 Deutschland": "Airship",
-  "R101": "Airship",
+  R101: "Airship",
   "USS Los Angeles ZR-3": "Airship",
   "High Altitude Surveillance Balloon": "Airship",
   "USS Akron ZRS-4": "Airship",
@@ -713,7 +713,7 @@ export const VEHICLE_DATA = {
   "Boeing X-32B": "VTOL",
   "Sailing Yacht": "Boat",
   "Djahazi Container Vessel": "Boat",
-  "Motorboat": "Boat",
+  Motorboat: "Boat",
   "G-5-class Motor Torpedo Boat": "Boat",
   "Fishing Trawler": "Boat",
   "Riverine Monitor": "Boat",
@@ -802,7 +802,7 @@ export const VEHICLE_DATA = {
   "Shinano-class Aircraft Carrier": "Boat",
   "Seawise-class Supertanker": "Boat",
   "Nimitz-class Aircraft Carrier": "Boat",
-  "Aeronautican": "Ground",
+  Aeronautican: "Ground",
   "Sapin Air Stairs": "Ground",
   "Sapin T135 EBT": "Ground",
   "Sapin Belt Loader": "Ground",
@@ -821,10 +821,12 @@ export const VEHICLE_DATA = {
   "Sapin Pushback Tug Medium": "Ground",
 } as const;
 
-export const ALL_VEHICLES = Object.keys(VEHICLE_DATA) as (keyof typeof VEHICLE_DATA)[];
+export const ALL_VEHICLES = Object.keys(
+  VEHICLE_DATA,
+) as (keyof typeof VEHICLE_DATA)[];
 
 export type Vehicle = keyof typeof VEHICLE_DATA;
-export type VehicleType = typeof VEHICLE_DATA[Vehicle];
+export type VehicleType = (typeof VEHICLE_DATA)[Vehicle];
 
 export const VEHICLE_TYPES = [
   "Airship",
@@ -837,6 +839,53 @@ export const VEHICLE_TYPES = [
   "Supersonic",
   "Ultralight",
   "VTOL",
+] as const;
+
+export const GEN2_VEHICLES = [
+  "A220-100/300",
+  "A318/19/20/21 (ceo/neo/p2f)",
+  "A330 (ceo/neo/p2f/f) (no beluga xl)",
+  "A340-200/300/500/600",
+  "A350-800/900/1000/F",
+  "A380-800",
+  "Antonov A-40",
+  "Antonov AN-71 Madcap",
+  "ADF-340X Relay",
+  "737-600/700/800/900/MAX 7/8/9/10/BDSF/BCF",
+  "787-8/9/10",
+  "E-7A Wedgetail",
+  "P-8 Poseidon",
+  "Boom Overture (2016/2022)",
+  "XB-1",
+  "Comac C909 (CCF)",
+  "Dornier DO-31",
+  "DC-8-12/55/61/61F/62/62F",
+  "Enterprize class frigate",
+  "Hawker Siddeley HS.141",
+  "IL-62/MGR",
+  "IL-96-300/400/400T",
+  "Iowa class battleship",
+  "KAC R.811",
+  "Kanamori K500/600/700",
+  "Kronshtadt Orion",
+  "Lockheed C-121/EC-121",
+  "Lockheed L-749/1049",
+  "North American X-10",
+  "Ryan YQM-98",
+  "San Antonio Class",
+  "Shinano Class",
+  "Star Ferry",
+  "SSJ-100",
+  "Sukhoi T-4MS",
+  "Transall C-160",
+  "TU-156",
+  "TU-204-100/100C/300/214R/214SUS",
+  "TU-444",
+  "Type VIIC class",
+  "Ulyanovsk class",
+  "Viscount 630/663/700/800",
+  "YAK-44E",
+  "Yamato Class",
 ] as const;
 
 export function isVehicle(str: string): str is Vehicle {

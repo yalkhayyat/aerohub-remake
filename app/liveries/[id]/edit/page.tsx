@@ -7,6 +7,7 @@ import { useUploadFile } from "@convex-dev/r2/react";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,9 @@ import type { Vehicle } from "@/types/vehicle";
 import type { LiveryInput } from "@/types/post";
 import Link from "next/link";
 import type { Id } from "@/convex/_generated/dataModel";
+
+const MAX_TITLE_LENGTH = 80;
+const MAX_DESCRIPTION_LENGTH = 5000;
 
 export default function EditPostPage() {
   const router = useRouter();
@@ -105,16 +109,37 @@ export default function EditPostPage() {
 
   // Validation
   const isValid = React.useMemo(() => {
-    if (!title.trim()) return false;
+    if (!title.trim() || title.length > MAX_TITLE_LENGTH) return false;
+    if (description.length > MAX_DESCRIPTION_LENGTH) return false;
     if (vehicles.length === 0) return false;
     if (images.length === 0 && initialImageKeys.length === 0) return false;
     if (liveries.length === 0) return false;
-    // Check all liveries have at least one valid key-value
-    if (liveries.some((l) => l.keyValues.every((kv) => !kv.key.trim()))) {
+
+    // Check all liveries follow rules
+    const hasInvalidLivery = liveries.some((l) => {
+      // Must have at least one part and all parts must have names
+      const hasEmptyPart = l.keyValues.every((kv) => !kv.key.trim());
+      if (hasEmptyPart) return true;
+
+      // Check lengths and types
+      const hasRuleViolation = l.keyValues.some(
+        (kv) =>
+          kv.key.length > 20 ||
+          kv.value.length > 20 ||
+          (kv.value !== "" && !/^\d+$/.test(kv.value)),
+      );
+      if (hasRuleViolation) return true;
+
+      // Advanced customization
+      if ((l.advancedCustomization?.length ?? 0) > 500) return true;
+
       return false;
-    }
+    });
+
+    if (hasInvalidLivery) return false;
+
     return true;
-  }, [title, vehicles, images, initialImageKeys, liveries]);
+  }, [title, description, vehicles, images, initialImageKeys, liveries]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,36 +154,52 @@ export default function EditPostPage() {
         images.some((img) => img.key === key && img.uploaded),
       );
 
-      // Upload NEW images to R2
-      const updatedImages = [...images];
+      // Upload NEW images to R2 concurrently
+      const uploadPromises = images.map(async (image, index) => {
+        // If it's already uploaded or has no file (legacy/existing), keep as is
+        if (image.uploaded || !image.file) {
+          return null;
+        }
 
-      for (let i = 0; i < images.length; i++) {
-        const img = images[i];
-        // If it's a new image (not uploaded or no key) and has a file
-        if (!img.uploaded && img.file) {
-          updatedImages[i] = { ...updatedImages[i], uploading: true };
-          setImages([...updatedImages]);
+        // Set this specific image to uploading
+        setImages((prev) => {
+          const next = [...prev];
+          next[index] = { ...next[index], uploading: true };
+          return next;
+        });
 
-          try {
-            const key = await uploadFile(img.file);
-            finalImageKeys.push(key);
-            updatedImages[i] = {
-              ...updatedImages[i],
+        try {
+          const key = await uploadFile(image.file);
+          setImages((prev) => {
+            const next = [...prev];
+            next[index] = {
+              ...next[index],
               uploading: false,
               uploaded: true,
               key,
             };
-          } catch (uploadError) {
-            updatedImages[i] = {
-              ...updatedImages[i],
+            return next;
+          });
+          return key;
+        } catch (uploadError) {
+          setImages((prev) => {
+            const next = [...prev];
+            next[index] = {
+              ...next[index],
               uploading: false,
               error: "Upload failed",
             };
-            throw new Error(`Failed to upload image ${i + 1}`);
-          }
-          setImages([...updatedImages]);
+            return next;
+          });
+          throw new Error(`Failed to upload image ${index + 1}`);
         }
-      }
+      });
+
+      const newKeys = await Promise.all(uploadPromises);
+      // Combine existing keys with newly uploaded keys
+      finalImageKeys.push(
+        ...(newKeys.filter((key) => key !== null) as string[]),
+      );
 
       // Filter liveries
       const validLiveries = liveries.map((livery, index) => ({
@@ -171,7 +212,7 @@ export default function EditPostPage() {
       await updatePost({
         postId: params.id as Id<"posts">,
         title: title.trim(),
-        description: description.trim() || undefined,
+        description: description.trim(),
         vehicles: vehicles,
         imageKeys: finalImageKeys,
         liveries: validLiveries,
@@ -244,23 +285,66 @@ export default function EditPostPage() {
 
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-foreground/80">Title</Label>
+                      <div className="flex justify-between items-center">
+                        <Label className="text-foreground/80">Title</Label>
+                        <span
+                          className={cn(
+                            "text-[10px] text-muted-foreground transition-colors",
+                            title.length > MAX_TITLE_LENGTH &&
+                              "text-destructive font-bold",
+                          )}
+                        >
+                          {title.length}/{MAX_TITLE_LENGTH}
+                        </span>
+                      </div>
                       <Input
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         disabled={isSubmitting}
-                        className="bg-muted/10 border-border/50 focus:border-primary/50 text-lg h-12"
+                        className={cn(
+                          "bg-muted/10 border-border/50 focus:border-primary/50 text-lg h-12 transition-all",
+                          title.length > MAX_TITLE_LENGTH &&
+                            "border-destructive focus:border-destructive",
+                        )}
                       />
+                      {title.length > MAX_TITLE_LENGTH && (
+                        <p className="text-[11px] text-destructive px-1">
+                          Title must be {MAX_TITLE_LENGTH} characters or less
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-foreground/80">Description</Label>
+                      <div className="flex justify-between items-center">
+                        <Label className="text-foreground/80">
+                          Description
+                        </Label>
+                        <span
+                          className={cn(
+                            "text-[10px] text-muted-foreground transition-colors",
+                            description.length > MAX_DESCRIPTION_LENGTH &&
+                              "text-destructive font-bold",
+                          )}
+                        >
+                          {description.length}/{MAX_DESCRIPTION_LENGTH}
+                        </span>
+                      </div>
                       <Textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         disabled={isSubmitting}
-                        className="bg-muted/10 border-border/50 focus:border-primary/50 min-h-[240px] resize-none"
+                        className={cn(
+                          "bg-muted/10 border-border/50 focus:border-primary/50 min-h-[240px] resize-none transition-all",
+                          description.length > MAX_DESCRIPTION_LENGTH &&
+                            "border-destructive focus:border-destructive",
+                        )}
                       />
+                      {description.length > MAX_DESCRIPTION_LENGTH && (
+                        <p className="text-[11px] text-destructive px-1">
+                          Description must be {MAX_DESCRIPTION_LENGTH}{" "}
+                          characters or less
+                        </p>
+                      )}
                     </div>
                   </div>
                 </section>
