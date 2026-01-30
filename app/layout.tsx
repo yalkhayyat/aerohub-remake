@@ -9,8 +9,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
-  title: "Aeronautica Liveries",
-  description: "Liveries for Aeronautica",
+  title: "AEROHUB",
+  description:
+    "AEROHUB is the central destination for Aeronautica liveries, built for the Aeronautica community.",
 };
 
 export default function RootLayout({
