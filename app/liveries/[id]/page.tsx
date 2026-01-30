@@ -47,7 +47,17 @@ export default function LiveryDetailPage() {
   // Fetch related liveries (same vehicle type)
   const relatedResult = useQuery(
     api.posts.browseLiveries,
-    post ? { vehicleTypes: [post.vehicleType], limit: 5 } : "skip",
+    post
+      ? {
+          vehicleTypes:
+            post.vehicleTypes && post.vehicleTypes.length > 0
+              ? post.vehicleTypes
+              : post.vehicleType
+                ? [post.vehicleType]
+                : undefined,
+          limit: 5,
+        }
+      : "skip",
   );
 
   // Mutations for like/favorite
@@ -190,11 +200,27 @@ export default function LiveryDetailPage() {
 
           {/* Info Panel */}
           <div className="space-y-6">
-            {/* Badges */}
+            {/* Vehicle Types Badges */}
+            <div className="flex flex-wrap gap-2 mb-2">
+              {post.vehicleTypes?.map((type) => (
+                <Badge
+                  key={type}
+                  className="bg-primary/10 text-primary border-primary/20 backdrop-blur-sm"
+                >
+                  {type}
+                </Badge>
+              )) ||
+                (post.vehicleType && (
+                  <Badge className="bg-primary/10 text-primary border-primary/20 backdrop-blur-sm">
+                    {post.vehicleType}
+                  </Badge>
+                ))}
+            </div>
+
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight mb-4 drop-shadow-2xl">
+              {post.title}
+            </h1>
             <div className="flex flex-wrap gap-2">
-              <Badge className="bg-primary/10 text-primary border-primary/20">
-                {post.vehicleType}
-              </Badge>
               {isPack && (
                 <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">
                   <Layers size={12} className="mr-1" />
@@ -202,11 +228,6 @@ export default function LiveryDetailPage() {
                 </Badge>
               )}
             </div>
-
-            {/* Title */}
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-              {post.title}
-            </h1>
 
             {/* Author */}
             <div className="flex items-center gap-3">
@@ -315,7 +336,14 @@ export default function LiveryDetailPage() {
             <div className="flex flex-wrap gap-6 pt-4 border-t border-border/50 text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Plane size={16} />
-                <span>{post.vehicle}</span>
+                <div className="flex flex-wrap gap-1">
+                  {post.vehicles?.map((v, i) => (
+                    <span key={v}>
+                      {v}
+                      {i < (post.vehicles?.length || 0) - 1 ? ", " : ""}
+                    </span>
+                  )) || <span>{post.vehicle}</span>}
+                </div>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Calendar size={16} />
@@ -337,20 +365,29 @@ export default function LiveryDetailPage() {
               More {post.vehicleType} Liveries
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {relatedPosts.slice(0, 4).map((related) => (
-                <Link key={related._id} href={`/liveries/${related._id}`}>
+              {relatedPosts.slice(0, 4).map((relatedPost) => (
+                <Link
+                  key={relatedPost._id}
+                  href={`/liveries/${relatedPost._id}`}
+                >
                   <LiveryCardEnhanced
-                    id={related._id}
-                    title={related.title}
-                    description={related.description || ""}
-                    vehicle={related.vehicle}
-                    vehicleType={related.vehicleType}
-                    thumbnailUrl={related.thumbnailUrl || ""}
-                    username={related.authorName || "User"}
-                    createdAt={related.createdAt}
-                    likeCount={related.likeCount}
-                    favoriteCount={related.favoriteCount}
-                    liveryCount={related.liveryCount}
+                    id={relatedPost._id}
+                    title={relatedPost.title}
+                    description={relatedPost.description || ""}
+                    vehicles={
+                      relatedPost.vehicles ||
+                      (relatedPost.vehicle ? [relatedPost.vehicle] : [])
+                    }
+                    vehicleTypes={
+                      relatedPost.vehicleTypes ||
+                      (relatedPost.vehicleType ? [relatedPost.vehicleType] : [])
+                    }
+                    thumbnailUrl={relatedPost.thumbnailUrl || ""}
+                    username={relatedPost.authorName || "User"}
+                    createdAt={relatedPost.createdAt}
+                    likeCount={relatedPost.likeCount}
+                    favoriteCount={relatedPost.favoriteCount}
+                    liveryCount={relatedPost.liveryCount}
                   />
                 </Link>
               ))}

@@ -6,8 +6,11 @@ const schema = defineSchema({
   posts: defineTable({
     title: v.string(),
     description: v.optional(v.string()),
-    vehicle: v.string(), // Vehicle name from types/vehicle.ts
-    vehicleType: v.string(), // Vehicle type (e.g., "Jet", "Helicopter")
+    vehicles: v.array(v.string()), // Vehicle names from types/vehicle.ts
+    vehicleTypes: v.array(v.string()), // Vehicle types (e.g., "Jet", "Helicopter")
+    // Legacy fields for backward compatibility (no migration)
+    vehicle: v.optional(v.string()),
+    vehicleType: v.optional(v.string()),
     tags: v.array(v.string()), // Tags related to the post
     imageKeys: v.array(v.string()), // R2 object keys
     authorId: v.string(), // User ID from auth
@@ -18,8 +21,10 @@ const schema = defineSchema({
     liveryCount: v.number(), // Number of liveries in this pack (denormalized)
   })
     .index("by_author", ["authorId"])
-    .index("by_vehicle", ["vehicle"])
-    .index("by_vehicleType", ["vehicleType"])
+    .index("by_vehicle", ["vehicle"]) // Legacy
+    .index("by_vehicles", ["vehicles"]) // New array index
+    .index("by_vehicleType", ["vehicleType"]) // Legacy
+    .index("by_vehicleTypes", ["vehicleTypes"]) // New array index
     .index("by_tags", ["tags"])
     .index("by_created", ["createdAt"])
     .index("by_likes", ["likeCount"]),

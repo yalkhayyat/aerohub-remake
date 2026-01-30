@@ -114,6 +114,8 @@ export const seedPosts = mutation({
         description: `A stunning ${vehicle.type.toLowerCase()} livery featuring the iconic ${LIVERY_TITLES[titleIndex]} design. Perfect for aviation enthusiasts who appreciate attention to detail.`,
         vehicle: vehicle.name,
         vehicleType: vehicle.type,
+        vehicles: [vehicle.name],
+        vehicleTypes: [vehicle.type],
         tags: [vehicle.type, "Custom", i % 3 === 0 ? "Popular" : "New"],
         imageKeys: [`mock-image-${i + 1}`], // Placeholder - no actual R2 images
         authorId: `mock-user-${(i % 10) + 1}`, // Mock author IDs

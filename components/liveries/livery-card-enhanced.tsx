@@ -14,8 +14,8 @@ interface LiveryCardEnhancedProps {
   id: string;
   title: string;
   description?: string;
-  vehicle: string;
-  vehicleType: string;
+  vehicles: string[];
+  vehicleTypes: string[];
   thumbnailUrl: string;
   username: string;
   createdAt: number;
@@ -30,8 +30,8 @@ export function LiveryCardEnhanced({
   id,
   title,
   description,
-  vehicle,
-  vehicleType,
+  vehicles = [],
+  vehicleTypes = [],
   thumbnailUrl,
   username,
   createdAt,
@@ -205,9 +205,9 @@ export function LiveryCardEnhanced({
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
 
       {/* Top Left: Vehicle Type Badge + Pack Badge */}
-      <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
+      <div className="absolute top-3 left-3 flex flex-wrap gap-2 z-10 max-w-[80%]">
         <Badge className="bg-black/70 text-white border-0 backdrop-blur-sm">
-          {vehicleType}
+          {vehicleTypes[0] || "Aircraft"}
         </Badge>
         {isPack && (
           <Badge className="bg-primary/90 text-primary-foreground border-0 backdrop-blur-sm flex items-center gap-1">
@@ -281,7 +281,17 @@ export function LiveryCardEnhanced({
         <h3 className="font-semibold text-white text-lg leading-tight line-clamp-1 mb-1">
           {title}
         </h3>
-        <p className="text-white/70 text-sm line-clamp-1 mb-3">{vehicle}</p>
+        <div className="flex items-center gap-2 text-white/70 text-sm mb-3">
+          <span className="truncate max-w-[150px]">{vehicles[0]}</span>
+          {vehicles.length > 1 && (
+            <Badge
+              variant="secondary"
+              className="h-5 px-1.5 text-[10px] bg-white/20 text-white hover:bg-white/30 border-0"
+            >
+              +{vehicles.length - 1}
+            </Badge>
+          )}
+        </div>
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-3 text-white/80">
             <span className="flex items-center gap-1">

@@ -42,12 +42,13 @@ export default function EditPostPage() {
   // Form state
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [vehicle, setVehicle] = React.useState<Vehicle | null>(null);
+  const [vehicles, setVehicles] = React.useState<string[]>([]);
   const [images, setImages] = React.useState<ImageFile[]>([]);
   const [liveries, setLiveries] = React.useState<LiveryInput[]>([]);
+  const [initialImageKeys, setInitialImageKeys] = React.useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [hasInitialized, setHasInitialized] = React.useState(false);
+  const [isInitialized, setIsInitialized] = React.useState(false);
 
   // Convex hooks
   const uploadFile = useUploadFile(api.r2);
@@ -55,10 +56,16 @@ export default function EditPostPage() {
 
   // Initialize form with post data
   React.useEffect(() => {
-    if (post && !hasInitialized) {
+    if (post && !isInitialized) {
       setTitle(post.title);
       setDescription(post.description || "");
-      setVehicle(post.vehicle as Vehicle);
+      if (post.vehicles && post.vehicles.length > 0) {
+        setVehicles(post.vehicles);
+      } else if (post.vehicle) {
+        // Fallback for old posts
+        setVehicles([post.vehicle]);
+      }
+      setInitialImageKeys(post.imageKeys || []);
 
       // Existing images
       const existingImages: ImageFile[] = post.imageUrls.map((url, i) => ({
@@ -70,17 +77,19 @@ export default function EditPostPage() {
       setImages(existingImages);
 
       // Existing liveries
-      setLiveries(
-        post.liveries.map((l) => ({
-          title: l.title,
-          keyValues: l.keyValues,
-          advancedCustomization: l.advancedCustomization,
-        })),
-      );
+      if (post.liveries) {
+        setLiveries(
+          post.liveries.map((l) => ({
+            title: l.title,
+            keyValues: l.keyValues,
+            advancedCustomization: l.advancedCustomization,
+          })),
+        );
+      }
 
-      setHasInitialized(true);
+      setIsInitialized(true);
     }
-  }, [post, hasInitialized]);
+  }, [post, isInitialized]);
 
   // Redirect if not authenticated or not the author
   React.useEffect(() => {
@@ -97,14 +106,15 @@ export default function EditPostPage() {
   // Validation
   const isValid = React.useMemo(() => {
     if (!title.trim()) return false;
-    if (!vehicle) return false;
-    if (images.length === 0) return false;
+    if (vehicles.length === 0) return false;
+    if (images.length === 0 && initialImageKeys.length === 0) return false;
     if (liveries.length === 0) return false;
+    // Check all liveries have at least one valid key-value
     if (liveries.some((l) => l.keyValues.every((kv) => !kv.key.trim()))) {
       return false;
     }
     return true;
-  }, [title, vehicle, images, liveries]);
+  }, [title, vehicles, images, initialImageKeys, liveries]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,38 +124,40 @@ export default function EditPostPage() {
     setError(null);
 
     try {
+      // Start with existing image keys that are still present
+      const finalImageKeys: string[] = initialImageKeys.filter((key) =>
+        images.some((img) => img.key === key && img.uploaded),
+      );
+
       // Upload NEW images to R2
-      const finalImageKeys: string[] = [];
       const updatedImages = [...images];
 
       for (let i = 0; i < images.length; i++) {
         const img = images[i];
-        if (img.uploaded && img.key) {
-          finalImageKeys.push(img.key);
-          continue;
-        }
+        // If it's a new image (not uploaded or no key) and has a file
+        if (!img.uploaded && img.file) {
+          updatedImages[i] = { ...updatedImages[i], uploading: true };
+          setImages([...updatedImages]);
 
-        updatedImages[i] = { ...updatedImages[i], uploading: true };
-        setImages([...updatedImages]);
-
-        try {
-          const key = await uploadFile(img.file);
-          finalImageKeys.push(key);
-          updatedImages[i] = {
-            ...updatedImages[i],
-            uploading: false,
-            uploaded: true,
-            key,
-          };
-        } catch (uploadError) {
-          updatedImages[i] = {
-            ...updatedImages[i],
-            uploading: false,
-            error: "Upload failed",
-          };
-          throw new Error(`Failed to upload image ${i + 1}`);
+          try {
+            const key = await uploadFile(img.file);
+            finalImageKeys.push(key);
+            updatedImages[i] = {
+              ...updatedImages[i],
+              uploading: false,
+              uploaded: true,
+              key,
+            };
+          } catch (uploadError) {
+            updatedImages[i] = {
+              ...updatedImages[i],
+              uploading: false,
+              error: "Upload failed",
+            };
+            throw new Error(`Failed to upload image ${i + 1}`);
+          }
+          setImages([...updatedImages]);
         }
-        setImages([...updatedImages]);
       }
 
       // Filter liveries
@@ -157,10 +169,10 @@ export default function EditPostPage() {
 
       // Update the post
       await updatePost({
-        postId: postId as Id<"posts">,
+        postId: params.id as Id<"posts">,
         title: title.trim(),
         description: description.trim() || undefined,
-        vehicle: vehicle!,
+        vehicles: vehicles,
         imageKeys: finalImageKeys,
         liveries: validLiveries,
       });
@@ -283,15 +295,16 @@ export default function EditPostPage() {
                   <div className="space-y-6">
                     <div className="space-y-2">
                       <Label className="text-foreground/80">
-                        Vehicle Model
+                        Vehicle Models
                       </Label>
-                      <VehicleSelector
-                        value={vehicle}
-                        onValueChange={setVehicle}
-                        disabled={isSubmitting}
-                      />
+                      <div className="relative">
+                        <VehicleSelector
+                          value={vehicles}
+                          onValueChange={setVehicles}
+                          disabled={isSubmitting}
+                        />
+                      </div>
                     </div>
-
                     <div className="pt-2">
                       <LiveryEditor
                         liveries={liveries}

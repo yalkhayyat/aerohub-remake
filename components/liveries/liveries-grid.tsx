@@ -14,8 +14,10 @@ interface Livery {
   id: string;
   title: string;
   description: string;
-  vehicle: string;
-  vehicleType: string;
+  vehicles: string[];
+  vehicleTypes: string[];
+  vehicle?: string;
+  vehicleType?: string;
   thumbnailUrl: string;
   username: string;
   createdAt: number;
@@ -165,11 +167,16 @@ export function LiveriesGrid({
                 <LiveryCardEnhanced
                   id={livery.id}
                   title={livery.title}
-                  description={livery.description}
-                  vehicle={livery.vehicle}
-                  vehicleType={livery.vehicleType}
-                  thumbnailUrl={livery.thumbnailUrl}
-                  username={livery.username}
+                  description={livery.description || ""}
+                  vehicles={
+                    livery.vehicles || (livery.vehicle ? [livery.vehicle] : [])
+                  }
+                  vehicleTypes={
+                    livery.vehicleTypes ||
+                    (livery.vehicleType ? [livery.vehicleType] : [])
+                  }
+                  thumbnailUrl={livery.thumbnailUrl || ""}
+                  username={livery.username || "User"}
                   createdAt={livery.createdAt}
                   likeCount={livery.likeCount}
                   favoriteCount={livery.favoriteCount}

@@ -58,11 +58,14 @@ export function FeaturedLiveries() {
                 id={post._id}
                 title={post.title}
                 description={post.description || ""}
-                vehicle={post.vehicle}
-                vehicleType={post.vehicleType}
+                vehicles={post.vehicles || (post.vehicle ? [post.vehicle] : [])}
+                vehicleTypes={
+                  post.vehicleTypes ||
+                  (post.vehicleType ? [post.vehicleType] : [])
+                }
                 thumbnailUrl={post.thumbnailUrl || ""}
                 username="User" // TODO: Fetch actual username
-                createdAt={post.createdAt}
+                createdAt={post._creationTime}
                 likeCount={post.likeCount}
                 favoriteCount={post.favoriteCount}
                 liveryCount={post.liveryCount}
@@ -105,11 +108,14 @@ export function PopularLiveries() {
                 id={post._id}
                 title={post.title}
                 description={post.description || ""}
-                vehicle={post.vehicle}
-                vehicleType={post.vehicleType}
+                vehicles={post.vehicles || (post.vehicle ? [post.vehicle] : [])}
+                vehicleTypes={
+                  post.vehicleTypes ||
+                  (post.vehicleType ? [post.vehicleType] : [])
+                }
                 thumbnailUrl={post.thumbnailUrl || ""}
                 username="User"
-                createdAt={post.createdAt}
+                createdAt={post._creationTime}
                 likeCount={post.likeCount}
                 favoriteCount={post.favoriteCount}
                 liveryCount={post.liveryCount}
@@ -152,11 +158,14 @@ export function LatestLiveries() {
                 id={post._id}
                 title={post.title}
                 description={post.description || ""}
-                vehicle={post.vehicle}
-                vehicleType={post.vehicleType}
+                vehicles={post.vehicles || (post.vehicle ? [post.vehicle] : [])}
+                vehicleTypes={
+                  post.vehicleTypes ||
+                  (post.vehicleType ? [post.vehicleType] : [])
+                }
                 thumbnailUrl={post.thumbnailUrl || ""}
                 username="User"
-                createdAt={post.createdAt}
+                createdAt={post._creationTime}
                 likeCount={post.likeCount}
                 favoriteCount={post.favoriteCount}
                 liveryCount={post.liveryCount}

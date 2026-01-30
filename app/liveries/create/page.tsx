@@ -30,7 +30,7 @@ export default function CreatePostPage() {
   // Form state
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [vehicle, setVehicle] = React.useState<Vehicle | null>(null);
+  const [vehicles, setVehicles] = React.useState<string[]>([]);
   const [images, setImages] = React.useState<ImageFile[]>([]);
   const [liveries, setLiveries] = React.useState<LiveryInput[]>([
     { title: "Livery 1", keyValues: [{ key: "", value: "" }] },
@@ -52,7 +52,7 @@ export default function CreatePostPage() {
   // Validation
   const isValid = React.useMemo(() => {
     if (!title.trim()) return false;
-    if (!vehicle) return false;
+    if (vehicles.length === 0) return false;
     if (images.length === 0) return false;
     if (liveries.length === 0) return false;
     // Check all liveries have at least one valid key-value
@@ -60,7 +60,7 @@ export default function CreatePostPage() {
       return false;
     }
     return true;
-  }, [title, vehicle, images, liveries]);
+  }, [title, vehicles, images, liveries]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,7 +109,7 @@ export default function CreatePostPage() {
       const postId = await createPost({
         title: title.trim(),
         description: description.trim() || undefined,
-        vehicle: vehicle!,
+        vehicles: vehicles,
         imageKeys: uploadedKeys,
         liveries: validLiveries,
       });
@@ -228,11 +228,11 @@ export default function CreatePostPage() {
 
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <Label className="text-foreground/80">Vehicle Model</Label>
+                    <Label className="text-foreground/80">Vehicle Models</Label>
                     <div className="relative">
                       <VehicleSelector
-                        value={vehicle}
-                        onValueChange={setVehicle}
+                        value={vehicles}
+                        onValueChange={setVehicles}
                         disabled={isSubmitting}
                       />
                     </div>

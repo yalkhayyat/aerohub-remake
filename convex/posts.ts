@@ -56,7 +56,7 @@ export const createPost = mutation({
   args: {
     title: v.string(),
     description: v.optional(v.string()),
-    vehicle: v.string(),
+    vehicles: v.array(v.string()),
     imageKeys: v.array(v.string()), // R2 object keys from client upload
     liveries: v.array(liveryValidator),
   },
@@ -85,13 +85,17 @@ export const createPost = mutation({
       throw new Error("Posts must have between 1 and 12 images");
     }
 
-    // Determine vehicle type
-    const vehicleType = VEHICLE_DATA[args.vehicle as keyof typeof VEHICLE_DATA];
-    if (!vehicleType) {
-      throw new Error(`Invalid vehicle: ${args.vehicle}`);
+    // Determine vehicle types
+    const vehicleTypes = new Set<string>();
+    for (const vehicle of args.vehicles) {
+      const type = VEHICLE_DATA[vehicle as keyof typeof VEHICLE_DATA];
+      if (!type) {
+        throw new Error(`Invalid vehicle: ${vehicle}`);
+      }
+      vehicleTypes.add(type);
     }
-
-    const tags = [vehicleType];
+    const vehicleTypesArray = Array.from(vehicleTypes);
+    const tags = [...vehicleTypesArray];
 
     const now = Date.now();
 
@@ -99,8 +103,8 @@ export const createPost = mutation({
     const postId = await ctx.db.insert("posts", {
       title: args.title,
       description: args.description,
-      vehicle: args.vehicle,
-      vehicleType,
+      vehicles: args.vehicles,
+      vehicleTypes: vehicleTypesArray,
       tags,
       imageKeys: args.imageKeys,
       authorId: user._id,
@@ -311,20 +315,30 @@ export const browseLiveries = query({
     // Vehicle type filter
     if (args.vehicleTypes && args.vehicleTypes.length > 0) {
       filteredPosts = filteredPosts.filter((p) =>
-        args.vehicleTypes!.includes(p.vehicleType),
+        p.vehicleTypes.some((t) => args.vehicleTypes!.includes(t)),
       );
     }
 
     // Search filter
     if (args.search && args.search.trim()) {
       const searchLower = args.search.toLowerCase();
-      filteredPosts = filteredPosts.filter(
-        (p) =>
-          p.title.toLowerCase().includes(searchLower) ||
-          p.vehicle.toLowerCase().includes(searchLower) ||
-          p.vehicleType.toLowerCase().includes(searchLower) ||
-          (p.description && p.description.toLowerCase().includes(searchLower)),
-      );
+      filteredPosts = filteredPosts.filter((p) => {
+        const title = p.title.toLowerCase();
+        const description = p.description ? p.description.toLowerCase() : "";
+
+        const matchesSearch =
+          title.includes(searchLower) ||
+          description.includes(searchLower) ||
+          (p.vehicles &&
+            p.vehicles.some((v) => v.toLowerCase().includes(searchLower))) ||
+          (p.vehicle && p.vehicle.toLowerCase().includes(searchLower)) ||
+          (p.vehicleTypes &&
+            p.vehicleTypes.some((t) =>
+              t.toLowerCase().includes(searchLower),
+            )) ||
+          (p.vehicleType && p.vehicleType.toLowerCase().includes(searchLower));
+        return matchesSearch;
+      });
     }
 
     // Pagination
@@ -404,6 +418,7 @@ export const listPosts = query({
 });
 
 // List posts by vehicle
+// List posts by vehicle (searches both legacy and new fields)
 export const listPostsByVehicle = query({
   args: {
     vehicle: v.string(),
@@ -412,12 +427,30 @@ export const listPostsByVehicle = query({
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
 
-    const posts = await ctx.db
+    // Search legacy field
+    const legacyPosts = await ctx.db
       .query("posts")
       .withIndex("by_vehicle", (q) => q.eq("vehicle", args.vehicle))
       .take(limit);
 
-    const postsWithThumbnails = await Promise.all(posts.map(addThumbnailUrl));
+    // Search new field
+    const newPosts = await ctx.db
+      .query("posts")
+      .withIndex("by_vehicles", (q) => q.eq("vehicles", args.vehicle as any))
+      .take(limit);
+
+    // Combine and deduplicate
+    const allPosts = [...newPosts, ...legacyPosts].filter(
+      (post, index, self) =>
+        index === self.findIndex((p) => p._id === post._id),
+    );
+
+    // Sort by creation time desc (newest first)
+    allPosts.sort((a, b) => b._creationTime - a._creationTime);
+
+    const postsWithThumbnails = await Promise.all(
+      allPosts.slice(0, limit).map(addThumbnailUrl),
+    );
 
     return postsWithThumbnails;
   },
@@ -449,7 +482,7 @@ export const updatePost = mutation({
     postId: v.id("posts"),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
-    vehicle: v.optional(v.string()),
+    vehicles: v.optional(v.array(v.string())),
     imageKeys: v.optional(v.array(v.string())),
     liveries: v.optional(v.array(liveryValidator)),
   },
@@ -484,15 +517,23 @@ export const updatePost = mutation({
     if (args.description !== undefined) updates.description = args.description;
     if (args.imageKeys !== undefined) updates.imageKeys = args.imageKeys;
 
-    if (args.vehicle !== undefined) {
-      updates.vehicle = args.vehicle;
-      const vehicleType =
-        VEHICLE_DATA[args.vehicle as keyof typeof VEHICLE_DATA];
-      if (!vehicleType) {
-        throw new Error(`Invalid vehicle: ${args.vehicle}`);
+    if (args.vehicles !== undefined) {
+      if (args.vehicles.length === 0) {
+        throw new Error("At least one vehicle is required");
       }
-      updates.vehicleType = vehicleType;
-      updates.tags = [vehicleType];
+      updates.vehicles = args.vehicles;
+
+      const vehicleTypes = new Set<string>();
+      for (const vehicle of args.vehicles) {
+        const type = VEHICLE_DATA[vehicle as keyof typeof VEHICLE_DATA];
+        if (!type) {
+          throw new Error(`Invalid vehicle: ${vehicle}`);
+        }
+        vehicleTypes.add(type);
+      }
+      const vehicleTypesArray = Array.from(vehicleTypes);
+      updates.vehicleTypes = vehicleTypesArray;
+      updates.tags = [...vehicleTypesArray];
     }
 
     if (args.liveries !== undefined) {

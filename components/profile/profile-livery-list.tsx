@@ -24,8 +24,10 @@ interface Livery {
   id: string;
   title: string;
   description: string;
-  vehicle: string;
-  vehicleType: string;
+  vehicles: string[];
+  vehicleTypes: string[];
+  vehicle?: string;
+  vehicleType?: string;
   thumbnailUrl: string;
   username: string;
   createdAt: number;
@@ -104,11 +106,12 @@ export function ProfileLiveryList({
         id: post._id,
         title: post.title,
         description: post.description || "",
-        vehicle: post.vehicle,
-        vehicleType: post.vehicleType,
+        vehicles: post.vehicles || (post.vehicle ? [post.vehicle] : []), // Handle legacy 'vehicle' field
+        vehicleTypes:
+          post.vehicleTypes || (post.vehicleType ? [post.vehicleType] : []), // Handle legacy 'vehicleType' field
         thumbnailUrl: post.thumbnailUrl || "",
         username: post.authorName || "User",
-        createdAt: post.createdAt,
+        createdAt: post._creationTime, // Use _creationTime
         likeCount: post.likeCount,
         favoriteCount: post.favoriteCount,
         liveryCount: post.liveryCount,

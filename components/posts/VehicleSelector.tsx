@@ -20,8 +20,8 @@ import {
 import { ALL_VEHICLES, type Vehicle } from "@/types/vehicle";
 
 interface VehicleSelectorProps {
-  value: Vehicle | null;
-  onValueChange: (value: Vehicle | null) => void;
+  value: string[];
+  onValueChange: (value: string[]) => void;
   disabled?: boolean;
 }
 
@@ -45,6 +45,14 @@ export function VehicleSelector({
     ).slice(0, 50); // Limit to 50 results for performance
   }, [searchQuery]);
 
+  const handleSelect = (vehicle: string) => {
+    if (value.includes(vehicle)) {
+      onValueChange(value.filter((v) => v !== vehicle));
+    } else {
+      onValueChange([...value, vehicle]);
+    }
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -53,12 +61,21 @@ export function VehicleSelector({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className="w-full justify-between"
+          className="w-full justify-between h-auto min-h-[10px] py-2"
         >
-          {value ? (
-            <span className="truncate">{value}</span>
+          {value.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {value.map((v) => (
+                <span
+                  key={v}
+                  className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded-md text-xs truncate max-w-[200px]"
+                >
+                  {v}
+                </span>
+              ))}
+            </div>
           ) : (
-            <span className="text-muted-foreground">Select vehicle...</span>
+            <span className="text-muted-foreground">Select vehicles...</span>
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -73,25 +90,28 @@ export function VehicleSelector({
           <CommandList className="max-h-[300px]">
             <CommandEmpty>No vehicle found.</CommandEmpty>
             <CommandGroup>
-              {filteredVehicles.map((vehicle) => (
-                <CommandItem
-                  key={vehicle}
-                  value={vehicle}
-                  onSelect={() => {
-                    onValueChange(vehicle === value ? null : vehicle);
-                    setOpen(false);
-                    setSearchQuery("");
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === vehicle ? "opacity-100" : "opacity-0",
-                    )}
-                  />
-                  <span className="truncate">{vehicle}</span>
-                </CommandItem>
-              ))}
+              {filteredVehicles.map((vehicle) => {
+                const isSelected = value.includes(vehicle);
+                return (
+                  <CommandItem
+                    key={vehicle}
+                    value={vehicle}
+                    onSelect={() => handleSelect(vehicle)}
+                  >
+                    <div
+                      className={cn(
+                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                        isSelected
+                          ? "bg-primary text-primary-foreground"
+                          : "opacity-50 [&_svg]:invisible",
+                      )}
+                    >
+                      <Check className={cn("h-4 w-4")} />
+                    </div>
+                    <span className="truncate">{vehicle}</span>
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
             {filteredVehicles.length === 50 && (
               <div className="p-2 text-center text-xs text-muted-foreground">

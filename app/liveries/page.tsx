@@ -23,8 +23,10 @@ interface Livery {
   id: string;
   title: string;
   description: string;
-  vehicle: string;
-  vehicleType: string;
+  vehicles: string[];
+  vehicleTypes: string[];
+  vehicle?: string;
+  vehicleType?: string;
   thumbnailUrl: string;
   username: string;
   createdAt: number;
@@ -90,11 +92,12 @@ export default function LiveriesPage() {
         id: post._id,
         title: post.title,
         description: post.description || "",
-        vehicle: post.vehicle,
-        vehicleType: post.vehicleType,
+        vehicles: post.vehicles || (post.vehicle ? [post.vehicle] : []),
+        vehicleTypes:
+          post.vehicleTypes || (post.vehicleType ? [post.vehicleType] : []),
         thumbnailUrl: post.thumbnailUrl || "",
         username: post.authorName || "User",
-        createdAt: post.createdAt,
+        createdAt: post._creationTime, // Changed from post.createdAt to post._creationTime
         likeCount: post.likeCount,
         favoriteCount: post.favoriteCount,
         liveryCount: post.liveryCount,
