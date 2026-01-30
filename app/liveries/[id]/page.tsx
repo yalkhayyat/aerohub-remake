@@ -186,6 +186,19 @@ export default function LiveryDetailPage() {
   const handleLike = async () => {
     if (!post) return;
 
+    // 0. Proactive Auth Check
+    if (!session) {
+      toast.error("Sign in required", {
+        description: "Please sign in to like liveries",
+        action: {
+          label: "Sign In",
+          onClick: () =>
+            router.push("/login?redirect=" + window.location.pathname),
+        },
+      });
+      return;
+    }
+
     // 1. Optimistic Update
     const previousIsLiked = localIsLiked;
     const previousCount = localLikeCount;
@@ -210,10 +223,19 @@ export default function LiveryDetailPage() {
         setLocalLikeCount(previousCount);
       }
 
-      const message = error instanceof Error ? error.message : "Failed to like";
-      if (message.includes("logged in")) {
+      const message = error instanceof Error ? error.message : String(error);
+      const isAuthError =
+        message.toLowerCase().includes("unauthenticated") ||
+        message.toLowerCase().includes("logged in");
+
+      if (isAuthError) {
         toast.error("Sign in required", {
           description: "Please sign in to like liveries",
+          action: {
+            label: "Sign In",
+            onClick: () =>
+              router.push("/login?redirect=" + window.location.pathname),
+          },
         });
       } else {
         toast.error("Failed to like", { description: message });
@@ -229,6 +251,19 @@ export default function LiveryDetailPage() {
   // Handle favorite toggle
   const handleFavorite = async () => {
     if (!post) return;
+
+    // 0. Proactive Auth Check
+    if (!session) {
+      toast.error("Sign in required", {
+        description: "Please sign in to save liveries",
+        action: {
+          label: "Sign In",
+          onClick: () =>
+            router.push("/login?redirect=" + window.location.pathname),
+        },
+      });
+      return;
+    }
 
     // 1. Optimistic Update
     const previousIsFavorited = localIsFavorited;
@@ -253,10 +288,19 @@ export default function LiveryDetailPage() {
         setLocalFavoriteCount(previousCount);
       }
 
-      const message = error instanceof Error ? error.message : "Failed to save";
-      if (message.includes("logged in")) {
+      const message = error instanceof Error ? error.message : String(error);
+      const isAuthError =
+        message.toLowerCase().includes("unauthenticated") ||
+        message.toLowerCase().includes("logged in");
+
+      if (isAuthError) {
         toast.error("Sign in required", {
           description: "Please sign in to save liveries",
+          action: {
+            label: "Sign In",
+            onClick: () =>
+              router.push("/login?redirect=" + window.location.pathname),
+          },
         });
       } else {
         toast.error("Failed to save", { description: message });
