@@ -62,8 +62,10 @@ export function CopyButtonWithLabel({
   value,
   label,
   className,
+  variant = "outline",
+  size = "sm",
   onCopy,
-}: Omit<CopyButtonProps, "size" | "variant">) {
+}: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -79,8 +81,8 @@ export function CopyButtonWithLabel({
 
   return (
     <Button
-      variant="outline"
-      size="sm"
+      variant={variant}
+      size={size}
       className={cn(
         "transition-all duration-200 gap-2",
         copied && "border-green-500 text-green-500",
