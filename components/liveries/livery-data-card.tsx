@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { CopyButton, CopyButtonWithLabel } from "./copy-button";
-import { ChevronDown, ChevronUp, Layers } from "lucide-react";
+import { Check, Copy, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface KeyValue {
   key: string;
@@ -24,110 +24,131 @@ export function LiveryDataCard({
   keyValues,
   advancedCustomization,
   index,
-  isOnlyVariation = false,
 }: LiveryDataCardProps) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Format all key-values for "Copy All"
-  const formatAllKeyValues = () => {
-    return keyValues.map((kv) => `${kv.key}: ${kv.value}`).join("\n");
-  };
-
-  // Parse and format advanced customization for display
-  const formatAdvancedCustomization = () => {
-    if (!advancedCustomization) return null;
-    try {
-      const parsed = JSON.parse(advancedCustomization);
-      return JSON.stringify(parsed, null, 2);
-    } catch {
-      return advancedCustomization;
+  // Format all data for copy
+  const formatAllData = () => {
+    const kvs = keyValues.map((kv) => `${kv.key}: ${kv.value}`).join("\n");
+    if (advancedCustomization) {
+      return `${kvs}\n\nAdvanced Customization:\n${advancedCustomization}`;
     }
+    return kvs;
   };
 
-  const formattedAdvanced = formatAdvancedCustomization();
+  const handleCopyAll = async () => {
+    await navigator.clipboard.writeText(formatAllData());
+    setCopied(true);
+    toast.success("Copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyValue = async (key: string, value: string) => {
+    await navigator.clipboard.writeText(value);
+    setCopiedKey(key);
+    toast.success(`${key} copied`);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  // Parse advanced customization
+  const hasAdvanced = !!advancedCustomization;
 
   return (
-    <div className="rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border/30">
-        <div className="flex items-center gap-3">
-          {!isOnlyVariation && (
-            <Badge variant="outline" className="text-xs font-mono">
-              #{index + 1}
-            </Badge>
+    <div className="group rounded-2xl border border-border/40 bg-gradient-to-br from-card/80 to-card/40 p-5 transition-all duration-300 hover:border-border/60 hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20">
+      <div className="flex items-center justify-between gap-4 mb-4">
+        {/* Title */}
+        <p className="font-semibold text-foreground">
+          {title || `Livery ${index + 1}`}
+        </p>
+        {/* Copy all button */}
+        <button
+          onClick={handleCopyAll}
+          className={cn(
+            "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+            copied
+              ? "bg-green-500/15 text-green-600 dark:text-green-400 shadow-sm"
+              : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
-          <h3 className="font-semibold text-foreground">
-            {title || `Livery ${index + 1}`}
-          </h3>
-        </div>
-        <CopyButtonWithLabel value={formatAllKeyValues()} label="Copy All" />
+        >
+          {copied ? <Check size={12} /> : <Copy size={12} />}
+          {copied ? "Copied!" : "Copy All"}
+        </button>
       </div>
 
-      {/* Key-Value pairs */}
-      <div className="p-4 space-y-2">
-        {keyValues.map((kv, kvIndex) => (
-          <div
-            key={kvIndex}
-            className="flex items-center justify-between gap-4 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group"
+      {/* Key-Value pairs - each individually copyable */}
+      <div className="space-y-1.5">
+        {keyValues.map((kv, i) => (
+          <button
+            key={i}
+            onClick={() => handleCopyValue(kv.key, kv.value)}
+            className={cn(
+              "w-full flex items-center justify-between gap-4 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 text-left group/item",
+              copiedKey === kv.key
+                ? "bg-green-500/10 ring-1 ring-green-500/20"
+                : "bg-muted/40 hover:bg-muted/70",
+            )}
           >
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <span className="text-sm font-medium text-muted-foreground w-16 shrink-0">
-                {kv.key}
-              </span>
-              <code className="text-sm font-mono text-foreground truncate">
-                {kv.value}
-              </code>
+            <span className="text-muted-foreground font-medium shrink-0">
+              {kv.key}
+            </span>
+            <code className="font-mono text-foreground truncate flex-1 text-right">
+              {kv.value}
+            </code>
+            <div
+              className={cn(
+                "shrink-0 transition-all duration-200 opacity-0 group-hover/item:opacity-100",
+                copiedKey === kv.key && "opacity-100 text-green-500",
+              )}
+            >
+              {copiedKey === kv.key ? (
+                <Check size={14} />
+              ) : (
+                <Copy size={14} className="text-muted-foreground" />
+              )}
             </div>
-            <CopyButton
-              value={kv.value}
-              label={kv.key}
-              className="opacity-50 group-hover:opacity-100 transition-opacity"
-            />
-          </div>
+          </button>
         ))}
       </div>
 
-      {/* Advanced Customization (collapsible) */}
-      {formattedAdvanced && (
-        <div className="border-t border-border/30">
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="w-full flex items-center justify-between p-4 hover:bg-muted/20 transition-colors"
-          >
-            <span className="text-sm font-medium text-muted-foreground">
+      {/* Advanced Customization - Full display with copy */}
+      {hasAdvanced && (
+        <div className="mt-3 rounded-xl bg-primary/5 border border-primary/10 overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-primary/10">
+            <span className="text-xs font-semibold text-primary uppercase tracking-wider">
               Advanced Customization
             </span>
-            {showAdvanced ? (
-              <ChevronUp size={16} className="text-muted-foreground" />
-            ) : (
-              <ChevronDown size={16} className="text-muted-foreground" />
-            )}
-          </button>
-
-          {showAdvanced && (
-            <div className="px-4 pb-4">
-              <div className="relative">
-                <pre className="p-4 rounded-lg bg-muted/50 text-xs font-mono overflow-x-auto max-h-64 overflow-y-auto">
-                  {formattedAdvanced}
-                </pre>
-                <div className="absolute top-2 right-2">
-                  <CopyButton
-                    value={advancedCustomization!}
-                    label="JSON"
-                    variant="secondary"
-                    size="sm"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+            <button
+              onClick={() =>
+                handleCopyValue("Advanced", advancedCustomization!)
+              }
+              className={cn(
+                "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all duration-200",
+                copiedKey === "Advanced"
+                  ? "bg-green-500/15 text-green-600 dark:text-green-400"
+                  : "text-primary hover:bg-primary/10",
+              )}
+            >
+              {copiedKey === "Advanced" ? (
+                <Check size={12} />
+              ) : (
+                <Copy size={12} />
+              )}
+              {copiedKey === "Advanced" ? "Copied!" : "Copy"}
+            </button>
+          </div>
+          <div className="px-3 py-2.5 max-h-32 overflow-y-auto">
+            <code className="font-mono text-xs text-foreground whitespace-pre-wrap break-all leading-relaxed">
+              {advancedCustomization}
+            </code>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-// Section header for the liveries list
+// Section for all liveries
 interface LiveriesSectionProps {
   liveries: Array<{
     _id: string;
@@ -135,59 +156,37 @@ interface LiveriesSectionProps {
     keyValues: KeyValue[];
     advancedCustomization?: string;
   }>;
-  onCopyAll?: () => void;
 }
 
-export function LiveriesSection({ liveries, onCopyAll }: LiveriesSectionProps) {
+export function LiveriesSection({ liveries }: LiveriesSectionProps) {
   const isPack = liveries.length > 1;
 
-  // Format all liveries for "Copy All"
-  const formatAllLiveries = () => {
-    return liveries
-      .map((livery, i) => {
-        const header = livery.title || `Livery ${i + 1}`;
-        const kvs = livery.keyValues
-          .map((kv) => `${kv.key}: ${kv.value}`)
-          .join("\n");
-        return `=== ${header} ===\n${kvs}`;
-      })
-      .join("\n\n");
-  };
-
   return (
-    <section className="space-y-6">
-      {/* Section Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-semibold text-foreground">
-            {isPack ? "Liveries" : "Livery Data"}
-          </h2>
-          {isPack && (
-            <Badge className="bg-primary/10 text-primary border-primary/20">
-              <Layers size={12} className="mr-1" />
-              {liveries.length} in pack
-            </Badge>
-          )}
-        </div>
+    <section>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <h2 className="text-xl font-bold text-foreground tracking-tight">
+          Livery Data
+        </h2>
         {isPack && (
-          <CopyButtonWithLabel
-            value={formatAllLiveries()}
-            label="Copy All IDs"
-            onCopy={onCopyAll}
-          />
+          <Badge variant="secondary" className="font-medium shadow-sm">
+            <Layers size={14} className="mr-1" />
+            {liveries.length} PACK
+          </Badge>
         )}
+        <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
       </div>
 
-      {/* Livery Cards */}
-      <div className="space-y-4">
+      {/* Livery Cards - Compact grid with independent heights */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-start">
         {liveries.map((livery, index) => (
           <LiveryDataCard
             key={livery._id}
-            title={livery.title}
+            title={isPack ? livery.title : undefined}
             keyValues={livery.keyValues}
             advancedCustomization={livery.advancedCustomization}
             index={index}
-            isOnlyVariation={liveries.length === 1}
+            isOnlyVariation={!isPack}
           />
         ))}
       </div>

@@ -36,15 +36,15 @@ export function LiveryImageGallery({
   };
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("flex flex-col", className)}>
       {/* Main Image */}
-      <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-muted/30">
+      <div className="relative aspect-[16/10] md:aspect-auto md:flex-1 md:min-h-[300px] rounded-2xl overflow-hidden bg-gradient-to-br from-muted/50 to-muted/20 shadow-lg shadow-black/5 dark:shadow-black/20">
         {currentImage && !imageError.has(activeIndex) ? (
           <Image
             src={currentImage}
             alt={`${title} - Image ${activeIndex + 1}`}
             fill
-            className="object-cover"
+            className="object-cover transition-transform duration-500 hover:scale-[1.02]"
             priority
             onError={() => handleImageError(activeIndex)}
           />
@@ -60,25 +60,25 @@ export function LiveryImageGallery({
             <Button
               variant="ghost"
               size="icon"
-              className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full"
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-105"
               onClick={goToPrev}
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={22} />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full"
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-105"
               onClick={goToNext}
             >
-              <ChevronRight size={20} />
+              <ChevronRight size={22} />
             </Button>
           </>
         )}
 
         {/* Image Counter */}
         {hasMultiple && (
-          <div className="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-black/50 text-white text-sm">
+          <div className="absolute bottom-4 right-4 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-sm text-white text-sm font-medium shadow-lg">
             {activeIndex + 1} / {imageUrls.length}
           </div>
         )}
@@ -86,7 +86,7 @@ export function LiveryImageGallery({
 
       {/* Thumbnail Strip */}
       {hasMultiple && (
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="flex gap-2 overflow-x-auto pb-2 mt-4">
           {imageUrls.map((url, index) => (
             <button
               key={index}

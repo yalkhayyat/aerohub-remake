@@ -12,8 +12,6 @@ import {
   Bookmark,
   Share2,
   Layers,
-  Calendar,
-  Plane,
   Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -169,8 +167,13 @@ export default function LiveryDetailPage() {
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4">
         {/* Breadcrumb / Back Navigation */}
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <Button variant="ghost" size="sm" asChild className="-ml-2">
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="-ml-2 hover:bg-muted/80 transition-all duration-200"
+          >
             <Link
               href="/liveries"
               className="gap-2 text-muted-foreground hover:text-foreground"
@@ -184,7 +187,7 @@ export default function LiveryDetailPage() {
             <Button
               variant="outline"
               size="sm"
-              className="gap-2 rounded-full border-primary/20 hover:bg-primary/5 hover:text-primary transition-all shadow-sm"
+              className="gap-2 rounded-full border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all duration-300 shadow-sm hover:shadow-md"
               onClick={() => router.push(`/liveries/${postId}/edit`)}
             >
               <Pencil size={14} />
@@ -194,166 +197,165 @@ export default function LiveryDetailPage() {
         </div>
 
         {/* Hero Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10 items-stretch">
           {/* Image Gallery */}
-          <LiveryImageGallery imageUrls={post.imageUrls} title={post.title} />
+          <div className="md:col-span-2 h-full">
+            <LiveryImageGallery
+              imageUrls={post.imageUrls}
+              title={post.title}
+              className="h-full"
+            />
+          </div>
 
-          {/* Info Panel */}
-          <div className="space-y-6">
-            {/* Vehicle Types Badges */}
-            <div className="flex flex-wrap gap-2 mb-2">
+          {/* Sidebar Info Panel - Premium Glassmorphism */}
+          <div className="md:col-span-1 h-full rounded-2xl border border-border/40 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl p-6 flex flex-col shadow-lg shadow-black/5 dark:shadow-black/20">
+            {/* TOP SECTION */}
+            {/* Badges */}
+            <div className="flex flex-wrap gap-2 mb-4">
               {post.vehicleTypes?.map((type) => (
                 <Badge
                   key={type}
-                  className="bg-primary/10 text-primary border-primary/20 backdrop-blur-sm"
+                  className="bg-primary/15 text-primary border-primary/25 font-medium shadow-sm"
                 >
                   {type}
                 </Badge>
               )) ||
                 (post.vehicleType && (
-                  <Badge className="bg-primary/10 text-primary border-primary/20 backdrop-blur-sm">
+                  <Badge className="bg-primary/15 text-primary border-primary/25 font-medium shadow-sm">
                     {post.vehicleType}
                   </Badge>
                 ))}
-            </div>
-
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight mb-4 drop-shadow-2xl">
-              {post.title}
-            </h1>
-            <div className="flex flex-wrap gap-2">
-              {isPack && (
-                <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">
-                  <Layers size={12} className="mr-1" />
+              {/* {isPack && (
+                <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25 font-medium shadow-sm">
+                  <Layers size={12} className="mr-1.5" />
                   {post.liveries.length} Liveries
                 </Badge>
-              )}
+              )} */}
             </div>
 
-            {/* Author */}
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
+            {/* Title */}
+            <h1 className="text-2xl font-bold text-foreground mb-4 leading-tight tracking-tight">
+              {post.title}
+            </h1>
+
+            {/* Author Row */}
+            <div className="flex items-center gap-3 group cursor-pointer">
+              <Avatar className="h-9 w-9 ring-2 ring-border/50 ring-offset-2 ring-offset-background transition-all group-hover:ring-primary/50">
                 <AvatarImage
                   src={post.author?.image || undefined}
                   alt={post.author?.displayName || ""}
                 />
-                <AvatarFallback className="bg-muted text-muted-foreground text-sm font-medium">
+                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary text-sm font-semibold">
                   {post.author?.displayName?.slice(0, 1).toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <p className="font-medium">
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                   {post.author?.displayName || "Unknown User"}
-                </p>
-                <p className="text-sm text-muted-foreground">Creator</p>
+                </span>
+                <span className="text-xs text-muted-foreground">Creator</span>
               </div>
             </div>
 
-            {/* Interactive Stats + Share */}
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              {/* Interactive Stats - clicking toggles the action */}
-              <div className="flex items-center gap-4">
-                {/* Like Button */}
+            {/* SPACER */}
+            <div className="flex-1 min-h-8" />
+
+            {/* BOTTOM SECTION */}
+            <div className="pt-5 border-t border-border/40 space-y-4">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                Published {formattedDate}
+              </p>
+              <div className="flex items-center gap-2">
                 <button
                   onClick={handleLike}
                   disabled={isLiking}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors group",
+                    "flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 flex-1 justify-center font-medium",
                     post.isLiked
-                      ? "bg-rose-500/10 hover:bg-rose-500/20"
-                      : "hover:bg-muted/50",
+                      ? "bg-rose-500/15 text-rose-500 shadow-sm shadow-rose-500/10"
+                      : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground",
                     isLiking && "opacity-50 cursor-not-allowed",
                   )}
-                  title={
-                    post.isLiked ? "Unlike this livery" : "Like this livery"
-                  }
                 >
                   <Heart
-                    size={20}
+                    size={18}
                     className={cn(
-                      "group-hover:scale-110 transition-transform",
-                      post.isLiked
-                        ? "text-rose-500 fill-rose-500"
-                        : "text-rose-400",
+                      "transition-transform duration-200",
+                      post.isLiked && "fill-rose-500 scale-110",
                     )}
                   />
-                  <span className="font-medium text-foreground">
-                    {post.likeCount}
-                  </span>
-                  <span className="text-muted-foreground text-sm">likes</span>
+                  <span className="text-sm">{post.likeCount}</span>
                 </button>
-
-                {/* Save/Favorite Button */}
                 <button
                   onClick={handleFavorite}
                   disabled={isSaving}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors group",
+                    "flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 flex-1 justify-center font-medium",
                     post.isFavorited
-                      ? "bg-amber-500/10 hover:bg-amber-500/20"
-                      : "hover:bg-muted/50",
+                      ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 shadow-sm shadow-amber-500/10"
+                      : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground",
                     isSaving && "opacity-50 cursor-not-allowed",
                   )}
-                  title={
-                    post.isFavorited ? "Remove from saves" : "Save to favorites"
-                  }
                 >
                   <Bookmark
-                    size={20}
+                    size={18}
                     className={cn(
-                      "group-hover:scale-110 transition-transform",
-                      post.isFavorited
-                        ? "text-amber-500 fill-amber-500"
-                        : "text-amber-400",
+                      "transition-transform duration-200",
+                      post.isFavorited && "fill-amber-500 scale-110",
                     )}
                   />
-                  <span className="font-medium text-foreground">
-                    {post.favoriteCount}
-                  </span>
-                  <span className="text-muted-foreground text-sm">saves</span>
+                  <span className="text-sm">{post.favoriteCount}</span>
                 </button>
-              </div>
-
-              {/* Share Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={handleShare}
-              >
-                <Share2 size={16} />
-                Share
-              </Button>
-            </div>
-
-            {/* Description */}
-            {post.description && (
-              <p className="text-muted-foreground leading-relaxed">
-                {post.description}
-              </p>
-            )}
-
-            {/* Meta Info */}
-            <div className="flex flex-wrap gap-6 pt-4 border-t border-border/50 text-sm">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Plane size={16} />
-                <div className="flex flex-wrap gap-1">
-                  {post.vehicles?.map((v, i) => (
-                    <span key={v}>
-                      {v}
-                      {i < (post.vehicles?.length || 0) - 1 ? ", " : ""}
-                    </span>
-                  )) || <span>{post.vehicle}</span>}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Calendar size={16} />
-                <span>{formattedDate}</span>
+                <button
+                  onClick={handleShare}
+                  className="flex items-center justify-center p-2.5 rounded-xl bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-200"
+                >
+                  <Share2 size={18} />
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Liveries Section */}
+        {/* About Section - Description + Vehicle */}
+        {(post.description || post.vehicles || post.vehicle) && (
+          <div className="mb-10 space-y-4">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-bold text-foreground tracking-tight">
+                About
+              </h2>
+              <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
+            </div>
+            <div className="p-5 rounded-2xl border border-border/40 bg-gradient-to-br from-card/60 to-card/30 backdrop-blur-sm shadow-sm space-y-4">
+              {/* Description Text */}
+              {post.description && (
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {post.description}
+                </p>
+              )}
+
+              {/* Vehicle Info */}
+              <div className="pt-3 border-t border-border/30">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
+                  Compatible Aircraft
+                </p>
+                <ul className="space-y-1">
+                  {(post.vehicles || [post.vehicle]).map((v, i) => (
+                    <li
+                      key={i}
+                      className="text-sm text-foreground flex items-center gap-2"
+                    >
+                      <span className="w-1 h-1 rounded-full bg-primary/60" />
+                      {v}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Livery Data Section */}
         <div className="mb-12">
           <LiveriesSection liveries={post.liveries} />
         </div>
@@ -361,10 +363,13 @@ export default function LiveryDetailPage() {
         {/* Related Liveries */}
         {relatedPosts.length > 0 && (
           <section className="space-y-6">
-            <h2 className="text-xl font-semibold text-foreground">
-              More {post.vehicleType} Liveries
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-bold text-foreground tracking-tight">
+                More {post.vehicleType} Liveries
+              </h2>
+              <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {relatedPosts.slice(0, 4).map((relatedPost) => (
                 <Link
                   key={relatedPost._id}
