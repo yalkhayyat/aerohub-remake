@@ -18,6 +18,7 @@ import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAvatarUrl } from "@/lib/use-avatar-url";
 
 function PostButton() {
   const { data: session, isPending } = authClient.useSession();
@@ -80,6 +81,9 @@ function MobileNavbar() {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
 
+  // Resolve avatar URL (handles R2 keys and external URLs)
+  const avatarUrl = useAvatarUrl(session?.user?.image);
+
   const handleSignOut = async () => {
     await authClient.signOut();
     router.push("/");
@@ -126,10 +130,7 @@ function MobileNavbar() {
           <>
             <div className="flex items-center gap-3 py-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage
-                  src={session.user.image || undefined}
-                  alt={session.user.name || ""}
-                />
+                <AvatarImage src={avatarUrl} alt={session.user.name || ""} />
                 <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                   {session.user.name?.slice(0, 2).toUpperCase() || "U"}
                 </AvatarFallback>

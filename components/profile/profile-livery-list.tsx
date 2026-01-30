@@ -107,7 +107,7 @@ export function ProfileLiveryList({
         vehicle: post.vehicle,
         vehicleType: post.vehicleType,
         thumbnailUrl: post.thumbnailUrl || "",
-        username: "User",
+        username: post.authorName || "User",
         createdAt: post.createdAt,
         likeCount: post.likeCount,
         favoriteCount: post.favoriteCount,

@@ -27,6 +27,12 @@ export function ProfileNameEditor({
       return;
     }
 
+    // Input validation (security fix)
+    if (name.trim().length > 100) {
+      toast.error("Name must be 100 characters or less");
+      return;
+    }
+
     if (name === initialName) {
       setIsEditing(false);
       return;

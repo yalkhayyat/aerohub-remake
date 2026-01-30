@@ -27,8 +27,10 @@ export const toggleLike = mutation({
     if (existingLike) {
       // Unlike: remove the like and decrement count
       await ctx.db.delete(existingLike._id);
+      // Refetch post to get fresh likeCount right before patching (race condition fix)
+      const freshPost = await ctx.db.get(args.postId);
       await ctx.db.patch(args.postId, {
-        likeCount: Math.max(0, post.likeCount - 1),
+        likeCount: Math.max(0, (freshPost?.likeCount ?? 1) - 1),
       });
       return { liked: false };
     } else {
@@ -38,8 +40,10 @@ export const toggleLike = mutation({
         postId: args.postId,
         createdAt: Date.now(),
       });
+      // Refetch post to get fresh likeCount right before patching (race condition fix)
+      const freshPost = await ctx.db.get(args.postId);
       await ctx.db.patch(args.postId, {
-        likeCount: post.likeCount + 1,
+        likeCount: (freshPost?.likeCount ?? 0) + 1,
       });
       return { liked: true };
     }

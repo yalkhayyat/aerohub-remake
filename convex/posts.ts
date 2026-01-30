@@ -9,6 +9,33 @@ import { VEHICLE_DATA } from "../types/vehicle";
 // Create R2 client directly to avoid circular dependency
 const r2 = new R2(components.r2);
 
+// R2 key prefix for avatar images
+const R2_PREFIX = "r2:";
+
+/**
+ * Resolve an avatar image URL.
+ * If the image is an R2 key (prefixed with "r2:"), generates a signed URL.
+ * Otherwise returns the image as-is (external URLs like Discord avatars).
+ */
+async function resolveAvatarUrl(
+  image: string | null | undefined,
+): Promise<string | null> {
+  if (!image) return null;
+
+  // External URL (e.g., Discord avatar) - use directly
+  if (!image.startsWith(R2_PREFIX)) {
+    return image;
+  }
+
+  // R2 key - generate signed URL
+  const storageKey = image.slice(R2_PREFIX.length);
+  try {
+    return await r2.getUrl(storageKey, { expiresIn: 60 * 60 * 24 }); // 24 hours
+  } catch {
+    return null;
+  }
+}
+
 // Type for livery input
 const liveryValidator = v.object({
   keyValues: v.array(
@@ -38,6 +65,14 @@ export const createPost = mutation({
     const user = await authComponent.getAuthUser(ctx);
     if (!user) {
       throw new Error("You must be logged in to create a post");
+    }
+
+    // Input validation (security fix)
+    if (args.title.length > 200) {
+      throw new Error("Title must be 200 characters or less");
+    }
+    if (args.description && args.description.length > 5000) {
+      throw new Error("Description must be 5000 characters or less");
     }
 
     // Validate at least one livery
@@ -111,31 +146,23 @@ export const getPost = query({
       image: null,
     };
     try {
-      // Check if authorId is a valid ID string (basic check)
-      // Convex IDs are base32 strings
-      if (post.authorId && !post.authorId.startsWith("mock-user")) {
+      if (post.authorId) {
         // Use the Better Auth component API to get the user
         const user = await authComponent.getAnyUserById(
           ctx,
-          post.authorId as any,
+          post.authorId as Parameters<typeof authComponent.getAnyUserById>[1],
         );
         if (user) {
+          // Resolve avatar URL from R2 key if needed
+          const resolvedImage = await resolveAvatarUrl(user.image);
           author = {
             displayName: user.displayUsername || user.name || "User",
-            image: user.image || null,
-          };
-        }
-      } else {
-        // Handle mock users or fallback
-        if (post.authorId.startsWith("mock-user")) {
-          author = {
-            displayName: "Pilot " + post.authorId.split("-")[2],
-            image: null,
+            image: resolvedImage,
           };
         }
       }
     } catch (e) {
-      console.error("Failed to fetch author:", e);
+      console.warn("Failed to fetch author:", e);
       // Keep default
     }
 
@@ -169,8 +196,9 @@ export const getPost = query({
           .first();
         isFavorited = !!favorite;
       }
-    } catch {
+    } catch (e) {
       // Auth session expired or invalid - treat as logged out
+      console.warn("Auth check failed in getPost:", e);
       isLiked = false;
       isFavorited = false;
     }
@@ -215,24 +243,27 @@ export const browseLiveries = query({
     favoritesUserId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const limit = args.limit ?? 12;
+    // Cap limit to prevent unbounded queries (security fix)
+    const limit = Math.min(args.limit ?? 12, 100);
     const sort = args.sort ?? "popular";
+    // Max items to fetch before filtering (to prevent memory issues)
+    const QUERY_LIMIT = 500;
 
     // Initial fetch of posts based on context
     let posts: Doc<"posts">[];
 
     if (args.authorId) {
-      // Fetch posts by author
+      // Fetch posts by author (limited)
       posts = await ctx.db
         .query("posts")
         .withIndex("by_author", (q) => q.eq("authorId", args.authorId!))
-        .collect();
+        .take(QUERY_LIMIT);
     } else if (args.favoritesUserId) {
       // Fetch posts favorited by user
       const favorites = await ctx.db
         .query("favorites")
         .withIndex("by_user", (q) => q.eq("userId", args.favoritesUserId!))
-        .collect();
+        .take(QUERY_LIMIT);
 
       const postsOrNull = await Promise.all(
         favorites.map((fav) => ctx.db.get(fav.postId)),
@@ -240,22 +271,22 @@ export const browseLiveries = query({
 
       posts = postsOrNull.filter((p): p is Doc<"posts"> => p !== null);
     } else {
-      // Browse all posts
+      // Browse all posts (limited to prevent memory issues)
       if (sort === "latest") {
         posts = await ctx.db
           .query("posts")
           .withIndex("by_created")
           .order("desc")
-          .collect();
+          .take(QUERY_LIMIT);
       } else if (sort === "most-liked") {
         posts = await ctx.db
           .query("posts")
           .withIndex("by_likes")
           .order("desc")
-          .collect();
+          .take(QUERY_LIMIT);
       } else {
         // popular
-        posts = await ctx.db.query("posts").collect();
+        posts = await ctx.db.query("posts").take(QUERY_LIMIT);
       }
     }
 
@@ -302,13 +333,40 @@ export const browseLiveries = query({
     const hasMore = startIndex + limit < filteredPosts.length;
     const nextCursor = hasMore ? String(startIndex + limit) : null;
 
-    // Add thumbnail URLs
-    const postsWithThumbnails = await Promise.all(
-      paginatedPosts.map(addThumbnailUrl),
+    // Add thumbnail URLs and author info
+    const postsWithThumbnailsAndAuthors = await Promise.all(
+      paginatedPosts.map(async (post) => {
+        // Fetch author info
+        let authorName = "User";
+        try {
+          if (post.authorId) {
+            const user = await authComponent.getAnyUserById(
+              ctx,
+              post.authorId as Parameters<
+                typeof authComponent.getAnyUserById
+              >[1],
+            );
+            if (user) {
+              authorName = user.displayUsername || user.name || "User";
+            }
+          }
+        } catch {
+          // Keep default
+        }
+
+        return {
+          ...post,
+          thumbnailUrl:
+            post.imageKeys.length > 0
+              ? await r2.getUrl(post.imageKeys[0], { expiresIn: 60 * 60 })
+              : null,
+          authorName,
+        };
+      }),
     );
 
     return {
-      posts: postsWithThumbnails,
+      posts: postsWithThumbnailsAndAuthors,
       hasMore,
       nextCursor,
       totalCount: filteredPosts.length,
@@ -410,6 +468,14 @@ export const updatePost = mutation({
       throw new Error("You can only update your own posts");
     }
 
+    // Input validation (security fix)
+    if (args.title !== undefined && args.title.length > 200) {
+      throw new Error("Title must be 200 characters or less");
+    }
+    if (args.description !== undefined && args.description.length > 5000) {
+      throw new Error("Description must be 5000 characters or less");
+    }
+
     const updates: Partial<Doc<"posts">> = {
       updatedAt: Date.now(),
     };
@@ -476,6 +542,9 @@ export const deletePost = mutation({
       throw new Error("You can only delete your own posts");
     }
 
+    // Store image keys for R2 cleanup
+    const imageKeysToDelete = [...post.imageKeys];
+
     // Delete associated liveries
     const liveries = await ctx.db
       .query("liveries")
@@ -509,10 +578,9 @@ export const deletePost = mutation({
     // Delete the post
     await ctx.db.delete(args.postId);
 
-    // Note: R2 files should be cleaned up separately if needed
-    // For now we'll leave orphaned files in R2
-
-    return args.postId;
+    // Return imageKeys so caller can clean up R2 files
+    // The caller should call r2.deleteFile for each key
+    return { postId: args.postId, imageKeysToDelete };
   },
 });
 

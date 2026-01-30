@@ -1,6 +1,5 @@
 "use client";
 
-import { useConvex } from "convex/react";
 import { useState, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera, Loader2 } from "lucide-react";
@@ -10,6 +9,7 @@ import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { useAvatarUrl, toR2ImageString } from "@/lib/use-avatar-url";
 
 interface ProfileAvatarUploaderProps {
   name: string | null | undefined;
@@ -26,7 +26,9 @@ export function ProfileAvatarUploader({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadFile = useUploadFile(api.r2);
   const router = useRouter();
-  const convex = useConvex();
+
+  // Resolve the avatar URL (handles both R2 keys and external URLs)
+  const resolvedAvatarUrl = useAvatarUrl(image);
 
   const initials = name
     ? name
@@ -49,18 +51,13 @@ export function ProfileAvatarUploader({
 
     setIsUploading(true);
     try {
-      // 1. Upload to R2
+      // 1. Upload to R2 and get the storage key
       const key = await uploadFile(file);
 
-      // 2. Get the URL from our R2 action
-      const url = await convex.action(api.r2.getUrl, { storageId: key });
-
-      if (!url) {
-        throw new Error("Failed to get file URL");
-      }
-
+      // 2. Store the R2 key (not the URL) in the user profile
+      // Prefix with "r2:" so we can distinguish from external URLs (Discord, etc.)
       await authClient.updateUser({
-        image: url,
+        image: toR2ImageString(key),
       });
 
       toast.success("Profile picture updated");
@@ -81,7 +78,7 @@ export function ProfileAvatarUploader({
     <div className="relative group">
       <Avatar className="h-32 w-32 border-4 border-card shadow-xl cursor-pointer">
         <AvatarImage
-          src={image || undefined}
+          src={resolvedAvatarUrl}
           alt={name || ""}
           className={cn(isUploading && "opacity-50")}
         />

@@ -27,8 +27,10 @@ export const toggleFavorite = mutation({
     if (existingFavorite) {
       // Unfavorite: remove the favorite and decrement count
       await ctx.db.delete(existingFavorite._id);
+      // Refetch post to get fresh favoriteCount right before patching (race condition fix)
+      const freshPost = await ctx.db.get(args.postId);
       await ctx.db.patch(args.postId, {
-        favoriteCount: Math.max(0, post.favoriteCount - 1),
+        favoriteCount: Math.max(0, (freshPost?.favoriteCount ?? 1) - 1),
       });
       return { favorited: false };
     } else {
@@ -38,8 +40,10 @@ export const toggleFavorite = mutation({
         postId: args.postId,
         createdAt: Date.now(),
       });
+      // Refetch post to get fresh favoriteCount right before patching (race condition fix)
+      const freshPost = await ctx.db.get(args.postId);
       await ctx.db.patch(args.postId, {
-        favoriteCount: post.favoriteCount + 1,
+        favoriteCount: (freshPost?.favoriteCount ?? 0) + 1,
       });
       return { favorited: true };
     }

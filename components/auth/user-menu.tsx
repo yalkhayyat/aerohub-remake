@@ -13,10 +13,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
+import { useAvatarUrl } from "@/lib/use-avatar-url";
 
 export function UserMenu() {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
+
+  // Resolve avatar URL (handles R2 keys and external URLs)
+  const avatarUrl = useAvatarUrl(session?.user?.image);
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -51,7 +55,7 @@ export function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user.image || undefined} alt={user.name || ""} />
+            <AvatarImage src={avatarUrl} alt={user.name || ""} />
             <AvatarFallback className="bg-primary text-primary-foreground">
               {initials}
             </AvatarFallback>

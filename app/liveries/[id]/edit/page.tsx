@@ -25,13 +25,19 @@ import type { Id } from "@/convex/_generated/dataModel";
 export default function EditPostPage() {
   const router = useRouter();
   const params = useParams();
-  const postId = params.id as Id<"posts">;
+  const postId = params.id as string;
+
+  // Basic validation for Convex ID format
+  const isValidId = postId && /^[a-zA-Z0-9_-]{5,}$/.test(postId);
 
   const { data: session, isPending: isSessionLoading } =
     authClient.useSession();
 
   // Fetch existing post data
-  const post = useQuery(api.posts.getPost, { postId });
+  const post = useQuery(
+    api.posts.getPost,
+    isValidId ? { postId: postId as Id<"posts"> } : "skip",
+  );
 
   // Form state
   const [title, setTitle] = React.useState("");
@@ -80,8 +86,13 @@ export default function EditPostPage() {
   React.useEffect(() => {
     if (!isSessionLoading && !session) {
       router.push(`/login?redirect=/liveries/${postId}/edit`);
+      return;
     }
-  }, [session, isSessionLoading, router, postId]);
+    // Redirect non-authors to view page (security fix)
+    if (post && session && post.authorId !== session.user.id) {
+      router.push(`/liveries/${postId}`);
+    }
+  }, [session, isSessionLoading, router, postId, post]);
 
   // Validation
   const isValid = React.useMemo(() => {
@@ -146,7 +157,7 @@ export default function EditPostPage() {
 
       // Update the post
       await updatePost({
-        postId,
+        postId: postId as Id<"posts">,
         title: title.trim(),
         description: description.trim() || undefined,
         vehicle: vehicle!,
@@ -164,7 +175,8 @@ export default function EditPostPage() {
     }
   };
 
-  if (isSessionLoading || post === undefined) {
+  // Loading state (only for valid IDs)
+  if (isSessionLoading || (isValidId && post === undefined)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -172,7 +184,11 @@ export default function EditPostPage() {
     );
   }
 
-  if (!session || !post) return null;
+  // Redirect to liveries if invalid ID or post not found
+  if (!isValidId || !session || !post) {
+    router.push("/liveries");
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/20">

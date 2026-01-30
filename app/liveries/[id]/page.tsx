@@ -34,10 +34,15 @@ export default function LiveryDetailPage() {
 
   const { data: session } = authClient.useSession();
 
+  // Basic validation for Convex ID format (base32 strings, typically 32 chars)
+  // Skip query if ID is obviously invalid to avoid Convex errors
+  const isValidId = postId && /^[a-zA-Z0-9_-]{5,}$/.test(postId);
+
   // Fetch post data with liveries
-  const post = useQuery(api.posts.getPost, {
-    postId: postId as Id<"posts">,
-  });
+  const post = useQuery(
+    api.posts.getPost,
+    isValidId ? { postId: postId as Id<"posts"> } : "skip",
+  );
 
   // Fetch related liveries (same vehicle type)
   const relatedResult = useQuery(
@@ -116,13 +121,13 @@ export default function LiveryDetailPage() {
     }
   };
 
-  // Loading state
-  if (post === undefined) {
+  // Loading state (only show loading for valid IDs while data is fetching)
+  if (isValidId && post === undefined) {
     return <LiveryDetailSkeleton />;
   }
 
-  // Not found
-  if (post === null) {
+  // Not found (includes invalid IDs)
+  if (!isValidId || post === null) {
     return (
       <div className="min-h-screen flex items-center justify-center pt-20">
         <div className="text-center">
@@ -137,6 +142,9 @@ export default function LiveryDetailPage() {
       </div>
     );
   }
+
+  // TypeScript guard: post is guaranteed non-null after above checks
+  if (!post) return null;
 
   const isPack = post.liveries.length > 1;
   const isAuthor = session?.user?.id === post.authorId;
@@ -338,7 +346,7 @@ export default function LiveryDetailPage() {
                     vehicle={related.vehicle}
                     vehicleType={related.vehicleType}
                     thumbnailUrl={related.thumbnailUrl || ""}
-                    username="User"
+                    username={related.authorName || "User"}
                     createdAt={related.createdAt}
                     likeCount={related.likeCount}
                     favoriteCount={related.favoriteCount}

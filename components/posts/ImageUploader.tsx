@@ -75,11 +75,28 @@ export function ImageUploader({
     onImagesChange(newImages);
   };
 
+  // Track previous URLs to properly revoke them when images change (memory leak fix)
+  const previousUrlsRef = React.useRef<Set<string>>(new Set());
+
   React.useEffect(() => {
+    // Get current preview URLs
+    const currentUrls = new Set(images.map((img) => img.preview));
+
+    // Revoke URLs that are no longer in use
+    previousUrlsRef.current.forEach((url) => {
+      if (!currentUrls.has(url)) {
+        URL.revokeObjectURL(url);
+      }
+    });
+
+    // Update the ref with current URLs
+    previousUrlsRef.current = currentUrls;
+
+    // Cleanup on unmount
     return () => {
-      images.forEach((image) => URL.revokeObjectURL(image.preview));
+      currentUrls.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, []);
+  }, [images]);
 
   const canAddMore = images.length < maxImages;
 
